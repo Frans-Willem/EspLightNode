@@ -9,16 +9,27 @@
 #include "os_type.h"
 #include "user_interface.h"
 #include "espconn.h"
+#include <config/config.h>
 
 #include "../output_protocols/ws2801.h"
 
 #define ARTNET_Port 0x1936
 
-#define ARTNET_Net	0
-#define ARTNET_SubNet	0
-#define ARTNET_Universe	2
-#define ARTNET_ShortName "Blinky"
-#define ARTNET_LongName	"Blinky v1.0"
+uint8_t artnet_enabled;
+char artnet_shortname[18];
+char artnet_longname[64];
+uint8_t artnet_net;
+uint8_t artnet_subnet;
+uint8_t artnet_universe;
+
+BEGIN_CONFIG(artnet, "Art-Net");
+	CONFIG_BOOLEAN("enabled","Enabled",&artnet_enabled, 1);
+	CONFIG_STRING("shortname","Short name", artnet_shortname, 18, "EspLightNode");
+	CONFIG_STRING("longname", "Long name", artnet_longname, 64, "EspLightNode v1.0.0 running on ESP8266");
+	CONFIG_INT("net", "Net", &artnet_net, 0, 127, 0);
+	CONFIG_INT("subnet", "SubNet", &artnet_net, 0, 15, 0);
+	CONFIG_INT("universe", "Universe", &artnet_net, 0, 15, 0);
+END_CONFIG();
 
 static void ICACHE_FLASH_ATTR artnet_recv_opoutput(unsigned char *packet, unsigned short packetlen) {
 	if (packetlen >= 8) {
@@ -28,7 +39,7 @@ static void ICACHE_FLASH_ATTR artnet_recv_opoutput(unsigned char *packet, unsign
 			uint8_t Physical = packet[3];
 			uint8_t SubUni = packet[4];
 			uint8_t Net = packet[5];
-			if (Net == ARTNET_Net && (SubUni >> 4) == ARTNET_SubNet && (SubUni & 0xF) == ARTNET_Universe) {
+			if (Net == artnet_net && (SubUni >> 4) == artnet_subnet && (SubUni & 0xF) == artnet_universe) {
 				uint16_t Length = ((uint16_t)packet[6] << 8) | packet[7];
 				if (packetlen >= 8 + Length) {
 					uint8_t *data = &packet[8];
@@ -108,21 +119,21 @@ static void ICACHE_FLASH_ATTR artnet_recv_oppoll(struct espconn *conn, unsigned 
 		memcpy(response.IP,&ipconfig.ip.addr,4);
 		ARTNET_SET_SHORT_LOFIRST(response.Port, ARTNET_Port);
 		ARTNET_SET_SHORT_HIFIRST(response.VersInfo, 0);
-		response.NetSwitch = ARTNET_Net;
-		response.SubSwitch = ARTNET_SubNet;
+		response.NetSwitch = artnet_net;
+		response.SubSwitch = artnet_subnet;
 		ARTNET_SET_SHORT_HIFIRST(response.Oem,0);
 		response.Ubea_Version = 0;
 		response.Status1 = 0;
 		ARTNET_SET_SHORT_LOFIRST(response.EstaMan,0);
-		strcpy(response.ShortName,ARTNET_ShortName);
-		strcpy(response.LongName,ARTNET_LongName);
+		memcpy(response.ShortName,artnet_shortname, sizeof(response.ShortName));
+		memcpy(response.LongName,artnet_longname, sizeof(response.LongName));
 		strcpy(response.NodeReport,"");
 		ARTNET_SET_SHORT_HIFIRST(response.NumPorts,1);
 		response.PortTypes[0]=0x80;
 		//Not set is set to 0
 		//response.GoodInput = 0;
 		//response.GoodOutput = 0;
-		response.SwOut[0] = ARTNET_Universe;
+		response.SwOut[0] = artnet_universe;
 		//response.SwVideo
 		//response.SwMacro
 		//response.SwRemote
@@ -167,6 +178,8 @@ void artnet_init() {
 	artnetconn.proto.udp = &artnetudp;
 	artnetudp.local_port=ARTNET_Port;
 	artnetconn.reverse = NULL;
-	espconn_regist_recvcb(&artnetconn, artnet_recv);
-	espconn_create(&artnetconn);
+	if (artnet_enabled) {
+		espconn_regist_recvcb(&artnetconn, artnet_recv);
+		espconn_create(&artnetconn);
+	}
 }

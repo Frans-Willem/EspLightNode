@@ -1,5 +1,5 @@
 /*
- * user_tpm2.c
+ * tpm2net.c
  *
  *  Created on: Nov 18, 2014
  *      Author: frans-willem
@@ -12,7 +12,7 @@
 
 #include "../output_protocols/ws2801.h"
 
-static void ICACHE_FLASH_ATTR tpm2_recv(void *arg, char *pusrdata, unsigned short length) {
+static void ICACHE_FLASH_ATTR tpm2net_recv(void *arg, char *pusrdata, unsigned short length) {
 	unsigned char *data =(unsigned char *)pusrdata;
 	if (data && length>=6 && data[0]==0x9C) {
 		uint8_t blocktype = data[1];
@@ -32,7 +32,7 @@ static void ICACHE_FLASH_ATTR tpm2_recv(void *arg, char *pusrdata, unsigned shor
 	}
 }
 
-void tpm2_init() {
+void tpm2net_init() {
 	static struct espconn tpm2conn;
 	static esp_udp tpm2udp;
 
@@ -41,6 +41,6 @@ void tpm2_init() {
 	tpm2conn.proto.udp = &tpm2udp;
 	tpm2udp.local_port=0xFFE2;
 	tpm2conn.reverse = NULL;
-	espconn_regist_recvcb(&tpm2conn, tpm2_recv);
+	espconn_regist_recvcb(&tpm2conn, tpm2net_recv);
 	espconn_create(&tpm2conn);
 }

@@ -6,6 +6,7 @@
  */
 
 
+#include <input_protocols/tpm2net.h>
 #include "ets_sys.h"
 #include "osapi.h"
 #include "gpio.h"
@@ -16,8 +17,10 @@
 #include "mem.h"
 
 #include "output_protocols/ws2801.h"
-#include "input_protocols/tpm2.h"
 #include "input_protocols/artnet.h"
+#include "input_protocols/tpm2net.h"
+#include "config/httpd.h"
+#include "config/config.h"
 
 static volatile os_timer_t client_timer;
 static void ICACHE_FLASH_ATTR wait_for_ip(uint8 flag) {
@@ -31,11 +34,12 @@ static void ICACHE_FLASH_ATTR wait_for_ip(uint8 flag) {
         if( ipconfig.ip.addr != 0) {
         	//Start UDP server
 #ifdef ENABLE_TPM2
-        	tpm2_init();
+        	tpm2net_init();
 #endif
 #ifdef ENABLE_ARTNET
         	artnet_init();
 #endif
+        	httpd_init();
         } else {
             os_timer_setfn(&client_timer, (os_timer_func_t *)wait_for_ip, NULL);
             os_timer_arm(&client_timer, 100, 0);
@@ -63,6 +67,8 @@ static void ICACHE_FLASH_ATTR system_is_done(void){
 void ICACHE_FLASH_ATTR
 user_init()
 {
+	config_load();
+
 	struct station_config stconf;
 	strcpy((char *)stconf.ssid,WIFI_SSID);
 	strcpy((char *)stconf.password,WIFI_PASSWORD);
