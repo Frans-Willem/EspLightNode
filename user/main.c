@@ -70,6 +70,7 @@ user_init()
 	config_load();
 
 	struct station_config stconf;
+	memset(&stconf, 0, sizeof(stconf));
 	strcpy((char *)stconf.ssid,WIFI_SSID);
 	strcpy((char *)stconf.password,WIFI_PASSWORD);
 
