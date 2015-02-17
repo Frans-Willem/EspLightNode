@@ -11,6 +11,7 @@
 #include "espconn.h"
 
 #include "../output_protocols/ws2801.h"
+#include "../output_protocols/ws2812.h"
 
 uint16_t framebuffer_len = 0;
 unsigned char framebuffer[1536]; //max 512 rgb pixels
@@ -26,13 +27,21 @@ static void ICACHE_FLASH_ATTR tpm2net_recv(void *arg, char *pusrdata, unsigned s
             if (length >= framelength + 7 && data[6+framelength]==0x36) { // header end (packet stop)
                 if (numpackages == 0x01) { // no frame split found
                     unsigned char *frame = &data[6]; // pointer 'frame' to espconn's data (start of data)
+#ifdef ENABLE_WS2812
+                    ws2812_strip(frame, framelength); // send data to strip
+#else
                     ws2801_strip(frame, framelength); // send data to strip
+#endif
                 } else { //frame split is found
                     os_memcpy (&framebuffer[framebuffer_len], &data[6], framelength);
                     framebuffer_len += framelength;
                     if (packagenum == numpackages) { // all packets found 
                         unsigned char *frame = &framebuffer[0]; // pointer 'frame' framebuffer
+#ifdef ENABLE_WS2812
+                        ws2812_strip(frame, framebuffer_len); // send data to strip
+#else
                         ws2801_strip(frame, framebuffer_len); // send data to strip
+#endif
                         framebuffer_len = 0;
                     }
                 }
