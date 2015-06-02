@@ -12,6 +12,7 @@
 #include <config/config.h>
 
 #include "../output_protocols/ws2801.h"
+#include "../output_protocols/ws2812.h"
 
 #define ARTNET_Port 0x1936
 
@@ -43,7 +44,11 @@ static void ICACHE_FLASH_ATTR artnet_recv_opoutput(unsigned char *packet, unsign
 				uint16_t Length = ((uint16_t)packet[6] << 8) | packet[7];
 				if (packetlen >= 8 + Length) {
 					uint8_t *data = &packet[8];
+#ifdef ENABLE_WS2812
+					ws2812_strip(data,Length);
+#else
 					ws2801_strip(data,Length);
+#endif
 				}
 			} else {
 				//Not intended for us...
