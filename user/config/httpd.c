@@ -129,7 +129,7 @@ void httpd_process_header(struct HttpdConnectionSlot *slot, uint8_t *line, uint1
 	uint16_t valuestart = split+1;
 	if (valuestart < len && line[valuestart]==' ') valuestart++;
 
-	if (strcmpi(line,"Content-length")) {
+	if (strcasecmp(line,"Content-length")) {
 		slot->contentLen=atoi(&line[valuestart]);
 	}
 }
