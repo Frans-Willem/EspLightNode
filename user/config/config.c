@@ -4,10 +4,12 @@
  *  Created on: Nov 19, 2014
  *      Author: frans-willem
  */
+#include <sdkfixup.h>
 #include "config.h"
 #include <string.h>
 #include <mem.h>
 #include <osapi.h>
+#include "httpd.h"
 
 void config_load_default_bool(struct ConfigRunner *runner, const char* name, const char* description, uint8_t *ptr, uint8_t def) {
 	*ptr=def;
@@ -118,13 +120,21 @@ void config_html_stringoption(struct ConfigRunner *runner, const char *name, con
 }
 void config_html_intoption(struct ConfigRunner *runner, const char *name, const char *description, void *ptrvalue, uint8_t size, uint32_t minvalue, uint32_t maxvalue, uint32_t defvalue) {
 	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
+	char temp[64];
+	config_html_write_string(htmlrunner, description);
+	config_html_write_string(htmlrunner, " <input type=\"text\" name=\"");
+	config_html_write_string(htmlrunner, name);
+	config_html_write_string(htmlrunner, "\" value=\"");
+	os_sprintf(temp, "%d", *(uint32_t *)ptrvalue);
+	config_html_write_string(htmlrunner, temp);
+	config_html_write_string(htmlrunner, "\"></input><br />");
 }
 
 void config_html_sendchunk(struct HttpdConnectionSlot *slot, void *data) {
 	struct ConfigRunnerHtmlChunk *chunk = (struct ConfigRunnerHtmlChunk *)data;
 	httpd_slot_send(slot,chunk->data,chunk->len);
 	if (chunk->next) {
-		httpd_slot_setsentcb(config_html_sendchunk, (void *)chunk->next);
+		httpd_slot_setsentcb(slot, config_html_sendchunk, (void *)chunk->next);
 	} else {
 		httpd_slot_setdone(slot);
 	}
@@ -154,5 +164,5 @@ void config_html(struct HttpdConnectionSlot *slot) {
 
 	os_sprintf(headers,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n",runner.len);
 	httpd_slot_setsentcb(slot, config_html_sendchunk,(void *)firstchunk);
-	httpd_slot_send(slot, headers, strlen(headers));
+	httpd_slot_send(slot, (uint8_t *)headers, strlen(headers));
 }

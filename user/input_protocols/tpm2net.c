@@ -4,6 +4,7 @@
  *  Created on: Nov 18, 2014
  *      Author: frans-willem
  */
+#include <sdkfixup.h>
 #include "ets_sys.h"
 #include "osapi.h"
 #include "os_type.h"

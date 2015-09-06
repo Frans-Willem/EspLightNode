@@ -1,7 +1,9 @@
+#include <sdkfixup.h>
 #include "ws2812.h"
 #include "osapi.h"
 #include <gpio.h>
 
+/* TODO: Rewrite this stuff to use I2S peripheral!
 void ICACHE_FLASH_ATTR SEND_WS_0()
 {
 	uint8_t time;
@@ -34,11 +36,12 @@ void ICACHE_FLASH_ATTR ws2812_strip( uint8_t * buffer, uint16_t length )
 	}
 	ets_intr_unlock();
 }
+*/
 
 void ICACHE_FLASH_ATTR ws2812_init()
 {
-	ets_wdt_disable();
-	char outbuffer[] = { 0x00, 0x00, 0x00 };
-	ws2812_strip( outbuffer, sizeof(outbuffer) );
+	//ets_wdt_disable();
+	//uint8_t outbuffer[] = { 0x00, 0x00, 0x00 };
+	//ws2812_strip( outbuffer, sizeof(outbuffer) );
 }
 

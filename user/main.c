@@ -4,8 +4,7 @@
  *  Created on: Nov 15, 2014
  *      Author: frans-willem
  */
-
-
+#include <sdkfixup.h>
 #include <input_protocols/tpm2net.h>
 #include "ets_sys.h"
 #include "osapi.h"
@@ -22,7 +21,7 @@
 #include "config/httpd.h"
 #include "config/config.h"
 
-static volatile os_timer_t client_timer;
+static os_timer_t client_timer;
 static void ICACHE_FLASH_ATTR wait_for_ip(uint8 flag) {
     LOCAL struct ip_info ipconfig;
     LOCAL int status;

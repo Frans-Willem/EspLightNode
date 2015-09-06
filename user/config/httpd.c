@@ -5,6 +5,8 @@
  *  Created on: Nov 19, 2014
  *      Author: frans-willem
  */
+#include <sdkfixup.h>
+#include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <osapi.h>
@@ -43,7 +45,7 @@ struct HttpdConnectionSlot *httpd_find_free_slot() {
 }
 
 void httpd_debug(struct HttpdConnectionSlot *slot, char *data) {
-	espconn_sent(slot->conn, data, strlen(data));
+	espconn_sent(slot->conn, (uint8_t *)data, strlen(data));
 }
 
 void httpd_add_buffer(struct HttpdConnectionSlot *slot, uint8_t *data, uint16_t len) {
@@ -54,7 +56,7 @@ void httpd_add_buffer(struct HttpdConnectionSlot *slot, uint8_t *data, uint16_t 
 }
 
 void httpd_add_buffer_string(struct HttpdConnectionSlot *slot, char *str) {
-	httpd_add_buffer(slot,str,strlen(str));
+	httpd_add_buffer(slot,(uint8_t *)str,strlen(str));
 }
 
 void httpd_set_error_state(struct HttpdConnectionSlot *slot, uint16_t code, char *codemessage, char *message) {
@@ -129,8 +131,8 @@ void httpd_process_header(struct HttpdConnectionSlot *slot, uint8_t *line, uint1
 	uint16_t valuestart = split+1;
 	if (valuestart < len && line[valuestart]==' ') valuestart++;
 
-	if (strcasecmp(line,"Content-length")) {
-		slot->contentLen=atoi(&line[valuestart]);
+	if (strcasecmp((char *)line,"Content-length")) {
+		slot->contentLen=atoi((char *)&line[valuestart]);
 	}
 }
 
@@ -243,7 +245,7 @@ void httpd_disconnect_callback(void *arg) {
 	//arg is wrong, so we need to manually loop over all slots.
 	unsigned int i;
 	for (i=0; i<HTTPD_MAX_CONN; i++) {
-		if (httpd_conns[i].conn && (httpd_conns[i].conn->state == ESPCONN_NONE || httpd_conns[i].conn->state == httpd_conns[i].conn->state == ESPCONN_CLOSE)) {
+		if (httpd_conns[i].conn && (httpd_conns[i].conn->state == ESPCONN_NONE || httpd_conns[i].conn->state == ESPCONN_CLOSE)) {
 			httpd_conns[i].conn = NULL;
 		}
 	}

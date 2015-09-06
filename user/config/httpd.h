@@ -25,7 +25,7 @@
 #define HTTPD_VERB_POST	1
 
 struct HttpdConnectionSlot;
-typedef uint8_t (* httpd_slot_sent_callback)(struct HttpdConnectionSlot *slot, void *data);
+typedef void (* httpd_slot_sent_callback)(struct HttpdConnectionSlot *slot, void *data);
 void httpd_slot_send(struct HttpdConnectionSlot *slot, uint8_t *data, uint16_t len);
 void httpd_slot_setsentcb(struct HttpdConnectionSlot *slot, httpd_slot_sent_callback sentcb, void *data);
 void httpd_slot_setdone(struct HttpdConnectionSlot *slot);

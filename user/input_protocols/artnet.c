@@ -28,16 +28,16 @@ BEGIN_CONFIG(artnet, "Art-Net");
 	CONFIG_STRING("shortname","Short name", artnet_shortname, 18, "EspLightNode");
 	CONFIG_STRING("longname", "Long name", artnet_longname, 64, "EspLightNode v1.0.0 running on ESP8266");
 	CONFIG_INT("net", "Net", &artnet_net, 0, 127, 0);
-	CONFIG_INT("subnet", "SubNet", &artnet_net, 0, 15, 0);
-	CONFIG_INT("universe", "Universe", &artnet_net, 0, 15, 0);
+	CONFIG_INT("subnet", "SubNet", &artnet_subnet, 0, 15, 0);
+	CONFIG_INT("universe", "Universe", &artnet_universe, 0, 15, 0);
 END_CONFIG();
 
 static void ICACHE_FLASH_ATTR artnet_recv_opoutput(unsigned char *packet, unsigned short packetlen) {
 	if (packetlen >= 8) {
 		uint16_t ProtVer=((uint16_t)packet[0] << 8) | packet[1];
 		if (ProtVer == 14) {
-			uint8_t Sequence = packet[2];
-			uint8_t Physical = packet[3];
+			//uint8_t Sequence = packet[2];
+			//uint8_t Physical = packet[3];
 			uint8_t SubUni = packet[4];
 			uint8_t Net = packet[5];
 			if (Net == artnet_net && (SubUni >> 4) == artnet_subnet && (SubUni & 0xF) == artnet_universe) {
@@ -103,7 +103,7 @@ struct ArtNetPollReply {
 
 static void ICACHE_FLASH_ATTR artnet_recv_oppoll(struct espconn *conn, unsigned char *packet, unsigned short packetlen) {
 	if (packetlen >= 3) {
-		uint16_t ProtVer=((uint16_t)packet[0] << 8) | packet[1];
+		//uint16_t ProtVer=((uint16_t)packet[0] << 8) | packet[1];
 		uint8_t TalkToMe=packet[2];
 		//TODO
 		if (TalkToMe & TTM_REPLY_MASK) {
@@ -112,7 +112,7 @@ static void ICACHE_FLASH_ATTR artnet_recv_oppoll(struct espconn *conn, unsigned 
 
 		}
 		struct ip_info ipconfig;
-		char hwaddr[6];
+		uint8_t hwaddr[6];
 
 		wifi_get_ip_info(STATION_IF, &ipconfig);
 		wifi_get_macaddr(STATION_IF, hwaddr);
@@ -132,7 +132,7 @@ static void ICACHE_FLASH_ATTR artnet_recv_oppoll(struct espconn *conn, unsigned 
 		ARTNET_SET_SHORT_LOFIRST(response.EstaMan,0);
 		memcpy(response.ShortName,artnet_shortname, sizeof(response.ShortName));
 		memcpy(response.LongName,artnet_longname, sizeof(response.LongName));
-		strcpy(response.NodeReport,"");
+		strcpy((char *)response.NodeReport,"");
 		ARTNET_SET_SHORT_HIFIRST(response.NumPorts,1);
 		response.PortTypes[0]=0x80;
 		//Not set is set to 0
@@ -147,7 +147,7 @@ static void ICACHE_FLASH_ATTR artnet_recv_oppoll(struct espconn *conn, unsigned 
 		//response.BindIp
 		//response.BindIndex
 		//response.Status2
-		espconn_sent(conn,(char*)&response,sizeof(struct ArtNetPollReply));
+		espconn_sent(conn,(uint8_t *)&response,sizeof(struct ArtNetPollReply));
 	} else {
 		//Invalid length
 	}
