@@ -29,9 +29,11 @@ void config_load_default_int(struct ConfigRunner *runner, const char *name, cons
 }
 
 DEFINE_CONFIG(artnet);
+DEFINE_CONFIG(tpm2net);
 
 void config_run(struct ConfigRunner *runner) {
 	artnet_runconfig(runner);
+	tpm2net_runconfig(runner);
 }
 
 void config_load() {
@@ -44,10 +46,18 @@ void config_load() {
 	config_run(&runner);
 }
 
+struct ConfigRunnerCategory {
+	const char *szCategoryName;
+	struct ConfigRunnerCategory *next;
+	struct ConfigRunnerCategory *prev;
+};
+
 struct ConfigRunnerHtml {
 	struct ConfigRunner base;
 	struct ConfigRunnerHtmlChunk *first;
 	struct ConfigRunnerHtmlChunk *current;
+	struct ConfigRunnerCategory *catFirst;
+	struct ConfigRunnerCategory *catLast;
 	uint16_t len;
 };
 
@@ -93,16 +103,39 @@ void config_html_beginmodule(struct ConfigRunner *runner, const char *name, cons
 	config_html_write_string(htmlrunner, "<fieldset><legend>");
 	config_html_write_string(htmlrunner, description);
 	config_html_write_string(htmlrunner, "</legend>");
+
+	struct ConfigRunnerCategory *cat = (struct ConfigRunnerCategory *)os_zalloc(sizeof(struct ConfigRunnerCategory));
+	cat->szCategoryName = name;
+	cat->prev = htmlrunner->catLast;
+	cat->next = NULL;
+	if (cat->prev)
+	       cat->prev->next = cat;
+	htmlrunner->catLast = cat;
+	if (htmlrunner->catFirst == NULL)
+		htmlrunner->catFirst = cat;
 }
 
 void config_html_endmodule(struct ConfigRunner *runner) {
 	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
 	config_html_write_string(htmlrunner, "</fieldset>");
+	struct ConfigRunnerCategory *cat = htmlrunner->catLast;
+	htmlrunner->catLast = cat->prev;
+	if (cat->prev)
+		cat->prev->next = NULL;
+	if (htmlrunner->catFirst == cat)
+		htmlrunner->catFirst = NULL;
+}
+void config_html_write_fieldprefix(struct ConfigRunnerHtml *runner) {
+	for (struct ConfigRunnerCategory *cat = runner->catFirst; cat != NULL; cat = cat->next) {
+		config_html_write_string(runner, cat->szCategoryName);
+		config_html_write_string(runner,".");
+	}
 }
 void config_html_booloption(struct ConfigRunner *runner, const char *name, const char *description, uint8_t *ptrvalue, uint8_t defvalue) {
 	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
 	config_html_write_string(htmlrunner, description);
-	config_html_write_string(htmlrunner, " <input type=\"checkbox\" name=\"");
+	config_html_write_string(htmlrunner, ": <input type=\"checkbox\" name=\"");
+	config_html_write_fieldprefix(htmlrunner);
 	config_html_write_string(htmlrunner, name);
 	config_html_write_string(htmlrunner, "\" value=\"1\"");
 	if (*ptrvalue)
@@ -112,21 +145,28 @@ void config_html_booloption(struct ConfigRunner *runner, const char *name, const
 void config_html_stringoption(struct ConfigRunner *runner, const char *name, const char *description, char *ptrvalue, uint16_t len, const char *defvalue) {
 	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
 	config_html_write_string(htmlrunner, description);
-	config_html_write_string(htmlrunner, " <input type=\"text\" name=\"");
+	config_html_write_string(htmlrunner, ": <input type=\"text\" name=\"");
+	config_html_write_fieldprefix(htmlrunner);
 	config_html_write_string(htmlrunner, name);
 	config_html_write_string(htmlrunner, "\" value=\"");
 	config_html_write_string(htmlrunner, ptrvalue);
 	config_html_write_string(htmlrunner, "\"></input><br />");
 }
 void config_html_intoption(struct ConfigRunner *runner, const char *name, const char *description, void *ptrvalue, uint8_t size, uint32_t minvalue, uint32_t maxvalue, uint32_t defvalue) {
+	char szTemp[32];
 	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
-	char temp[64];
 	config_html_write_string(htmlrunner, description);
-	config_html_write_string(htmlrunner, " <input type=\"text\" name=\"");
+	config_html_write_string(htmlrunner, ": <input type=\"text\" name=\"");
+	config_html_write_fieldprefix(htmlrunner);
 	config_html_write_string(htmlrunner, name);
 	config_html_write_string(htmlrunner, "\" value=\"");
-	os_sprintf(temp, "%d", *(uint32_t *)ptrvalue);
-	config_html_write_string(htmlrunner, temp);
+	switch (size) {
+		case 1: os_sprintf(szTemp,"%d",*(uint8_t *)ptrvalue); break;
+		case 2: os_sprintf(szTemp,"%d",*(uint16_t *)ptrvalue); break;
+		case 4: os_sprintf(szTemp,"%d",*(uint32_t *)ptrvalue); break;
+		default: szTemp[0]='\0'; break;
+	}
+	config_html_write_string(htmlrunner, szTemp);
 	config_html_write_string(htmlrunner, "\"></input><br />");
 }
 
@@ -152,17 +192,27 @@ void config_html(struct HttpdConnectionSlot *slot) {
 	runner.first = firstchunk;
 	runner.current = firstchunk;
 	runner.len = 0;
+	runner.catFirst = runner.catLast = NULL;
 
 	config_html_write_string(&runner, "<html><head><title>EspLightNode Configuration</title></head><body><h1>EspLightNode Configuration</h1>");
+	config_html_write_string(&runner, "<form method=\"POST\" action=\"/save\">");
 	runner.base.beginmodule = config_html_beginmodule;
 	runner.base.endmodule = config_html_endmodule;
 	runner.base.booloption = config_html_booloption;
 	runner.base.stringoption = config_html_stringoption;
 	runner.base.intoption = config_html_intoption;
 	config_run(&runner.base);
+	config_html_write_string(&runner, "<input type=\"submit\" value=\"Save\"></input></form>");
 	config_html_write_string(&runner, "</body></html>");
 
 	os_sprintf(headers,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n",runner.len);
 	httpd_slot_setsentcb(slot, config_html_sendchunk,(void *)firstchunk);
 	httpd_slot_send(slot, (uint8_t *)headers, strlen(headers));
+}
+
+void config_submit(struct HttpdConnectionSlot *slot) {
+	const char *response = "<html><head><title>Settings saving</title></head><body>Settings saving...</body></html>";
+	char data[512];
+	os_sprintf(data,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n%s",strlen(response),response);
+	httpd_slot_send(slot, (uint8_t *)data, strlen(data));
 }

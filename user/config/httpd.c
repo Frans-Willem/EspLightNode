@@ -205,6 +205,9 @@ void httpd_recv_callback(void *arg, char *pdata, unsigned short len) {
 		if (strcmp(slot->uri,"/") == 0 || strcmp(slot->uri,"/index.html")==0) {
 			slot->state = HTTPD_STATE_RESPONDING;
 			config_html(slot);
+		} else if (strcmp(slot->uri, "/save") == 0) {
+			slot->state = HTTPD_STATE_RESPONDING;
+			config_submit(slot);
 		} else {
 			httpd_set_error_state(slot,404,"Not found","Not found");
 		}

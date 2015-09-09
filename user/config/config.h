@@ -22,10 +22,11 @@ struct ConfigRunner {
 struct HttpdConnectionSlot;
 void config_load();
 void config_html(struct HttpdConnectionSlot *slot);
+void config_submit(struct HttpdConnectionSlot *slot);
 
 #define DEFINE_CONFIG(module) void module ## _runconfig(struct ConfigRunner *_configrunner);
 
-#define BEGIN_CONFIG(module, description) void module ## _runconfig(struct ConfigRunner *_configrunner) { if (_configrunner->beginmodule) _configrunner->beginmodule(_configrunner, description , description);
+#define BEGIN_CONFIG(module, description) void module ## _runconfig(struct ConfigRunner *_configrunner) { if (_configrunner->beginmodule) _configrunner->beginmodule(_configrunner, #module , description);
 #define END_CONFIG() if (_configrunner->endmodule) (_configrunner)->endmodule(_configrunner); }
 
 #define CONFIG_SUB(name) module ## _runconfig(_configrunner)
