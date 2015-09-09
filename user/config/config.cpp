@@ -12,6 +12,7 @@ extern "C" {
 #include "config.h"
 #include <string.h>
 #include "httpd.h"
+#include <list>
 
 void config_load_default_bool(struct ConfigRunner *runner, const char* name, const char* description, uint8_t *ptr, uint8_t def) {
 	*ptr=def;
@@ -48,18 +49,11 @@ void config_load() {
 	config_run(&runner);
 }
 
-struct ConfigRunnerCategory {
-	const char *szCategoryName;
-	struct ConfigRunnerCategory *next;
-	struct ConfigRunnerCategory *prev;
-};
-
 struct ConfigRunnerHtml {
 	struct ConfigRunner base;
 	struct ConfigRunnerHtmlChunk *first;
 	struct ConfigRunnerHtmlChunk *current;
-	struct ConfigRunnerCategory *catFirst;
-	struct ConfigRunnerCategory *catLast;
+	std::list<const char*> lCategory;
 	uint16_t len;
 };
 
@@ -105,31 +99,18 @@ void config_html_beginmodule(struct ConfigRunner *runner, const char *name, cons
 	config_html_write_string(htmlrunner, "<fieldset><legend>");
 	config_html_write_string(htmlrunner, description);
 	config_html_write_string(htmlrunner, "</legend>");
-
-	struct ConfigRunnerCategory *cat = (struct ConfigRunnerCategory *)os_zalloc(sizeof(struct ConfigRunnerCategory));
-	cat->szCategoryName = name;
-	cat->prev = htmlrunner->catLast;
-	cat->next = NULL;
-	if (cat->prev)
-	       cat->prev->next = cat;
-	htmlrunner->catLast = cat;
-	if (htmlrunner->catFirst == NULL)
-		htmlrunner->catFirst = cat;
+	htmlrunner->lCategory.push_back(name);
 }
 
 void config_html_endmodule(struct ConfigRunner *runner) {
 	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
 	config_html_write_string(htmlrunner, "</fieldset>");
-	struct ConfigRunnerCategory *cat = htmlrunner->catLast;
-	htmlrunner->catLast = cat->prev;
-	if (cat->prev)
-		cat->prev->next = NULL;
-	if (htmlrunner->catFirst == cat)
-		htmlrunner->catFirst = NULL;
+	if (!htmlrunner->lCategory.empty())
+		htmlrunner->lCategory.pop_back();
 }
 void config_html_write_fieldprefix(struct ConfigRunnerHtml *runner) {
-	for (struct ConfigRunnerCategory *cat = runner->catFirst; cat != NULL; cat = cat->next) {
-		config_html_write_string(runner, cat->szCategoryName);
+	for (auto name : runner->lCategory) {
+		config_html_write_string(runner, name);
 		config_html_write_string(runner,".");
 	}
 }
@@ -184,17 +165,15 @@ void config_html_sendchunk(struct HttpdConnectionSlot *slot, void *data) {
 }
 
 void config_html(struct HttpdConnectionSlot *slot) {
-	struct ConfigRunnerHtmlChunk *firstchunk = (struct ConfigRunnerHtmlChunk *)os_zalloc(sizeof(struct ConfigRunnerHtmlChunk));
+	struct ConfigRunnerHtmlChunk *firstchunk = new ConfigRunnerHtmlChunk();
 	char headers[256];
 	firstchunk->len = 0;
 	firstchunk->next = NULL;
 
 	struct ConfigRunnerHtml runner;
-	memset(&runner, 0, sizeof(struct ConfigRunnerHtml));
 	runner.first = firstchunk;
 	runner.current = firstchunk;
 	runner.len = 0;
-	runner.catFirst = runner.catLast = NULL;
 
 	config_html_write_string(&runner, "<html><head><title>EspLightNode Configuration</title></head><body><h1>EspLightNode Configuration</h1>");
 	config_html_write_string(&runner, "<form method=\"POST\" action=\"/save\">");
