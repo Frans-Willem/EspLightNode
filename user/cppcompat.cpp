@@ -1,5 +1,5 @@
-extern "C" {
 #include <sdkfixup.h>
+extern "C" {
 #include <mem.h>
 }
 #include <cstddef>
