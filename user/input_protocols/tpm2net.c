@@ -10,12 +10,18 @@
 #include "os_type.h"
 #include "user_interface.h"
 #include "espconn.h"
+#include <config/config.h>
 
 #include "../output_protocols/ws2801.h"
 #include "../output_protocols/ws2812.h"
 
+uint8_t tpm2net_enabled;
 uint16_t framebuffer_len = 0;
 unsigned char framebuffer[1536]; //max 512 rgb pixels
+
+BEGIN_CONFIG(tpm2net,"TPM2.net");
+	CONFIG_BOOLEAN("enabled","Enabled",&tpm2net_enabled, 1);
+END_CONFIG();
 
 static void ICACHE_FLASH_ATTR tpm2net_recv(void *arg, char *pusrdata, unsigned short length) {
     unsigned char *data =(unsigned char *)pusrdata; //pointer to espconn's returned data
