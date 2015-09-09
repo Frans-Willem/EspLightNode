@@ -25,10 +25,11 @@ CFLAGS:=-Os -ggdb -std=c99 -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-fun
 	-I./include/ -I./$(SRC_DIR) -I$(SDK)/include
 CXXFLAGS:=-Os -ggdb -std=c++0x -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
 	-nostdlib -mlongcalls -mtext-section-literals -Wno-address \
-	-I./include/ -I./$(SRC_DIR) -I$(SDK)/include
+	-I./include/ -I./$(SRC_DIR) -I$(SDK)/include \
+	-fdump-rtl-expand -fno-exceptions
 LDFLAGS:= -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK)/lib -T$(SDK)/ld/eagle.app.v6.ld
 
-LIBS:= c gcc phy pp net80211 wpa main lwip
+LIBS:= c gcc phy pp net80211 wpa main lwip stdc++
 
 all: $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin)
 
