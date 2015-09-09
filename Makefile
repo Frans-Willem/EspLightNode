@@ -4,7 +4,7 @@ OBJ_DIR:=objs
 SRC_DIR:=user
 OUTPUT_DIR:=firmware
 # Object files
-OBJS:= main \
+OBJS:= cppcompat main \
 	output_protocols/ws2801 \
 	output_protocols/ws2812 \
 	input_protocols/tpm2net \
@@ -16,10 +16,14 @@ SDK:=/home/frans-willem/esp8266/SDK/esp_iot_sdk_v1.3.0
 PORT:=/dev/ttyUSB0
 
 CC:=xtensa-lx106-elf-gcc
+CXX:=xtensa-lx106-elf-g++
 ESPTOOL:=esptool.py
 
 DEFINES:=-DENABLE_TPM2NET -DENABLE_ARTNET -DENABLE_WS2812
 CFLAGS:=-Os -ggdb -std=c99 -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
+	-nostdlib -mlongcalls -mtext-section-literals -Wno-address \
+	-I./include/ -I./$(SRC_DIR) -I$(SDK)/include
+CXXFLAGS:=-Os -ggdb -std=c++0x -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
 	-nostdlib -mlongcalls -mtext-section-literals -Wno-address \
 	-I./include/ -I./$(SRC_DIR) -I$(SDK)/include
 LDFLAGS:= -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK)/lib -T$(SDK)/ld/eagle.app.v6.ld
@@ -34,7 +38,12 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -MM $< -MT $@ > $(@:%.o=%.d)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/firmware.elf: $(OBJS:%=$(OBJ_DIR)/%.o)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -MM $< -MT $@ > $(@:%.o=%.d)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/firmware.elf: $(OBJS:%=$(OBJ_DIR)/%.o) $(OBJSXX:%=$(OBJ_DIR)/%.o)
 	$(CC) -o $@ $(LDFLAGS) -Wl,--start-group $^ $(addprefix -l,$(LIBS)) -Wl,--end-group
 
 $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin): $(OBJ_DIR)/firmware.elf
