@@ -5,10 +5,12 @@
  *      Author: frans-willem
  */
 #include <sdkfixup.h>
-#include "config.h"
-#include <string.h>
+extern "C" {
 #include <mem.h>
 #include <osapi.h>
+}
+#include "config.h"
+#include <string.h>
 #include "httpd.h"
 
 void config_load_default_bool(struct ConfigRunner *runner, const char* name, const char* description, uint8_t *ptr, uint8_t def) {

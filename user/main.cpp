@@ -5,7 +5,7 @@
  *      Author: frans-willem
  */
 #include <sdkfixup.h>
-#include <input_protocols/tpm2net.h>
+extern "C" {
 #include "ets_sys.h"
 #include "osapi.h"
 #include "gpio.h"
@@ -14,6 +14,8 @@
 #include "user_interface.h"
 #include "espconn.h"
 #include "mem.h"
+}
+#include "input_protocols/tpm2net.h"
 #include "output_protocols/ws2801.h"
 #include "output_protocols/ws2812.h"
 #include "input_protocols/artnet.h"
@@ -63,7 +65,7 @@ static void ICACHE_FLASH_ATTR system_is_done(void){
 }
 
 //Init function
-void ICACHE_FLASH_ATTR
+extern "C" void ICACHE_FLASH_ATTR
 user_init()
 {
 	config_load();

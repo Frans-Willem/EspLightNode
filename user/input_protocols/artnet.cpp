@@ -4,11 +4,14 @@
  *  Created on: Nov 18, 2014
  *      Author: frans-willem
  */
+#include <sdkfixup.h>
+extern "C" {
 #include "ets_sys.h"
 #include "osapi.h"
 #include "os_type.h"
 #include "user_interface.h"
 #include "espconn.h"
+}
 #include <config/config.h>
 
 #include "../output_protocols/ws2801.h"

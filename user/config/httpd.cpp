@@ -6,10 +6,15 @@
  *      Author: frans-willem
  */
 #include <sdkfixup.h>
+extern "C" {
+#include <osapi.h>
+#include <ip_addr.h>
+#include <espconn.h>
+}
+
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <osapi.h>
 #include "httpd.h"
 #include "../config/config.h"
 
@@ -44,22 +49,22 @@ struct HttpdConnectionSlot *httpd_find_free_slot() {
 	return httpd_find_slot(NULL);
 }
 
-void httpd_debug(struct HttpdConnectionSlot *slot, char *data) {
+void httpd_debug(struct HttpdConnectionSlot *slot, const char *data) {
 	espconn_sent(slot->conn, (uint8_t *)data, strlen(data));
 }
 
-void httpd_add_buffer(struct HttpdConnectionSlot *slot, uint8_t *data, uint16_t len) {
+void httpd_add_buffer(struct HttpdConnectionSlot *slot, const uint8_t *data, uint16_t len) {
 	uint16_t copy = HTTPD_BUFFER_SIZE - slot->bufferLen;
 	if (copy > len) copy = len;
 	memcpy(&slot->buffer[slot->bufferLen], data, copy);
 	slot->bufferLen+=copy;
 }
 
-void httpd_add_buffer_string(struct HttpdConnectionSlot *slot, char *str) {
-	httpd_add_buffer(slot,(uint8_t *)str,strlen(str));
+void httpd_add_buffer_string(struct HttpdConnectionSlot *slot, const char *str) {
+	httpd_add_buffer(slot,(const uint8_t *)str,strlen(str));
 }
 
-void httpd_set_error_state(struct HttpdConnectionSlot *slot, uint16_t code, char *codemessage, char *message) {
+void httpd_set_error_state(struct HttpdConnectionSlot *slot, uint16_t code, const char *codemessage, const char *message) {
 	char strTemp[32];
 	uint16_t messagelen=strlen(message);
 	slot->bufferLen = 0;

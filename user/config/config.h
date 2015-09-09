@@ -9,6 +9,12 @@
 #define CONFIG_CONFIG_H_
 #include <c_types.h>
 
+#ifdef __cplusplus
+#define FORCE_C extern "C"
+#else
+#define FORCE_C
+#endif
+
 struct ConfigRunner {
 	void (*beginmodule)(struct ConfigRunner *runner, const char *name, const char *description);
 	void (*endmodule)(struct ConfigRunner *runner);
@@ -20,13 +26,13 @@ struct ConfigRunner {
 	void (*endselectoption)(struct ConfigRunner *);*/
 };
 struct HttpdConnectionSlot;
-void config_load();
-void config_html(struct HttpdConnectionSlot *slot);
-void config_submit(struct HttpdConnectionSlot *slot);
+FORCE_C void config_load();
+FORCE_C void config_html(struct HttpdConnectionSlot *slot);
+FORCE_C void config_submit(struct HttpdConnectionSlot *slot);
 
-#define DEFINE_CONFIG(module) void module ## _runconfig(struct ConfigRunner *_configrunner);
+#define DEFINE_CONFIG(module) FORCE_C void module ## _runconfig(struct ConfigRunner *_configrunner);
 
-#define BEGIN_CONFIG(module, description) void module ## _runconfig(struct ConfigRunner *_configrunner) { if (_configrunner->beginmodule) _configrunner->beginmodule(_configrunner, #module , description);
+#define BEGIN_CONFIG(module, description) FORCE_C void module ## _runconfig(struct ConfigRunner *_configrunner) { if (_configrunner->beginmodule) _configrunner->beginmodule(_configrunner, #module , description);
 #define END_CONFIG() if (_configrunner->endmodule) (_configrunner)->endmodule(_configrunner); }
 
 #define CONFIG_SUB(name) module ## _runconfig(_configrunner)

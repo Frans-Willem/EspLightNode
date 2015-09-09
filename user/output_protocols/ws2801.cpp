@@ -5,9 +5,11 @@
  *      Author: frans-willem
  */
 #include <sdkfixup.h>
-#include <c_types.h>
-#include <eagle_soc.h>
-#include <gpio.h>
+extern "C" {
+	#include <c_types.h>
+	#include <eagle_soc.h>
+	#include <gpio.h>
+}
 
 #define BIT_CLK		BIT0
 #define BIT_DATA	BIT2

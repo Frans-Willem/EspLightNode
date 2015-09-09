@@ -7,9 +7,7 @@
 
 #ifndef CONFIG_HTTPD_H_
 #define CONFIG_HTTPD_H_
-#include <c_types.h>
-#include <ip_addr.h>
-#include <espconn.h>
+#include <cstdint>
 
 #define HTTPD_MAX_CONN			8
 #define HTTPD_BUFFER_SIZE		512
