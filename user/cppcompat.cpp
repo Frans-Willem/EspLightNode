@@ -9,5 +9,6 @@ void* operator new(std::size_t size) {
 };
 
 void operator delete(void *ptr) {
+	os_free(ptr);
 	return;
 }
