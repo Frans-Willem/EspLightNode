@@ -19,7 +19,7 @@ extern "C" {
 
 #define ARTNET_Port 0x1936
 
-uint8_t artnet_enabled;
+bool artnet_enabled;
 char artnet_shortname[18];
 char artnet_longname[64];
 uint8_t artnet_net;

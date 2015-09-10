@@ -17,7 +17,7 @@ extern "C" {
 #include "../output_protocols/ws2801.h"
 #include "../output_protocols/ws2812.h"
 
-uint8_t tpm2net_enabled;
+bool tpm2net_enabled;
 uint16_t framebuffer_len = 0;
 unsigned char framebuffer[1536]; //max 512 rgb pixels
 

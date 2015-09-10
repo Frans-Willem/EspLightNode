@@ -14,181 +14,157 @@ extern "C" {
 #include "httpd.h"
 #include <list>
 
-void config_load_default_bool(struct ConfigRunner *runner, const char* name, const char* description, uint8_t *ptr, uint8_t def) {
-	*ptr=def;
+class CConfigRunnerDefault : public IConfigRunner {
+void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool pbDefault) {
+	*pbValue = pbDefault;
 }
-
-void config_load_default_string(struct ConfigRunner *runner, const char* name, const char* description, char *ptr, uint16_t len, const char *def) {
-	strncpy(ptr,def,len-1);
-	ptr[len-1]='\0';
+void optionString(const char *szName, const char *szDescription, char *szValue, size_t nSize, const char *szDefault) {
+	strncpy(szValue, szDefault, nSize-1);
+	szValue[nSize-1]='\0';
 }
-
-void config_load_default_int(struct ConfigRunner *runner, const char *name, const char *description, void *ptr, uint8_t size, uint32_t minvalue, uint32_t maxvalue, uint32_t defvalue) {
-	switch (size) {
-	case 1: *(uint8_t *)ptr = defvalue; break;
-	case 2: *(uint16_t *)ptr = defvalue; break;
-	case 4: *(uint32_t *)ptr = defvalue; break;
+void optionInt(const char *szName, const char *szDescription, void *pValue, size_t nSize, uint32_t nMin, uint32_t nMax, uint32_t nDefault) {
+	switch (nSize) {
+		case 1: *(uint8_t *)pValue = nDefault; break;
+		case 2: *(uint16_t *)pValue = nDefault; break;
+		case 4: *(uint32_t *)pValue = nDefault; break;
 	}
 }
+};
 
 DEFINE_CONFIG(artnet);
 DEFINE_CONFIG(tpm2net);
 
-void config_run(struct ConfigRunner *runner) {
+void config_run(IConfigRunner *runner) {
 	artnet_runconfig(runner);
 	tpm2net_runconfig(runner);
 }
 
 void config_load() {
-	struct ConfigRunner runner;
-	memset(&runner,0,sizeof(struct ConfigRunner));
-	runner.booloption = config_load_default_bool;
-	runner.stringoption = config_load_default_string;
-	runner.intoption = config_load_default_int;
-
-	config_run(&runner);
+	CConfigRunnerDefault cRunner;
+	config_run(&cRunner);
 }
-
-struct ConfigRunnerHtml {
-	struct ConfigRunner base;
-	struct ConfigRunnerHtmlChunk *first;
-	struct ConfigRunnerHtmlChunk *current;
-	std::list<const char*> lCategory;
-	uint16_t len;
-};
 
 #define CONFIGHTMLCHUNKSIZE	512
 
-struct ConfigRunnerHtmlChunk {
-	uint8_t data[CONFIGHTMLCHUNKSIZE];
-	uint16_t len;
-	struct ConfigRunnerHtmlChunk *next;
+class CConfigHtmlRunner : public IConfigRunner {
+	std::list<const char *> m_lCategories;
+	struct Chunk {
+		uint8_t pData[CONFIGHTMLCHUNKSIZE];
+		size_t nLen;
+	};
+	size_t m_nTotalLen;
+	std::list<Chunk> m_lChunks;
+
+	void write(const uint8_t *pData, size_t nLen) {
+		while (nLen) {
+			if (m_lChunks.empty() || m_lChunks.back().nLen >= CONFIGHTMLCHUNKSIZE) {
+				m_lChunks.push_back(Chunk());
+			}
+			Chunk& curChunk = m_lChunks.back();
+			size_t nCurLen = std::min(nLen, CONFIGHTMLCHUNKSIZE - curChunk.nLen);
+			memcpy(&curChunk.pData[curChunk.nLen], pData, nCurLen);
+			curChunk.nLen += nCurLen;
+			m_nTotalLen += nCurLen;
+			nLen -= nCurLen;
+			pData = &pData[nCurLen];
+		}
+	}
+	void write_string(const char *szData) {
+		write((const uint8_t *)szData, strlen(szData));
+	}
+	void write_fieldprefix() {
+		for (auto name : m_lCategories) {
+			write_string(name);
+			write_string(".");
+		}
+	}
+
+	void beginModule(const char *szName, const char *szDescription) {
+		write_string("<fieldset><legend>");
+		write_string(szDescription);
+		write_string("</legend>");
+		m_lCategories.push_back(szName);
+	}
+	void endModule() {
+		write_string("</fieldset>");
+		if (!m_lCategories.empty())
+			m_lCategories.pop_back();
+	}
+	void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool bDefault) {
+		write_string(szDescription);
+		write_string(": <input type=\"checkbox\" name=\"");
+		write_fieldprefix();
+		write_string(szName);
+		write_string("\" value=\"1\"");
+		if (*pbValue)
+			write_string(" checked");
+		write_string("></input><br />");
+	}
+	void optionString(const char *szName, const char *szDescription, char *szValue, size_t nSize, const char *szDefault) {
+		write_string(szDescription);
+		write_string(": <input type=\"text\" name=\"");
+		write_fieldprefix();
+		write_string(szName);
+		write_string("\" value=\"");
+		write_string(szValue);
+		write_string("\"></input><br />");
+	}
+	void optionInt(const char *szName, const char *szDescription, void *pValue, size_t nSize, uint32_t nMin, uint32_t nMax, uint32_t nDefault) {
+		char szTemp[12];
+		write_string(szDescription);
+		write_string(": <input type=\"text\" name=\"");
+		write_fieldprefix();
+		write_string(szName);
+		write_string("\" value=\"");
+		switch (nSize) {
+			case 1: os_sprintf(szTemp,"%d",*(uint8_t *)pValue); break;
+			case 2: os_sprintf(szTemp,"%d",*(uint16_t *)pValue); break;
+			case 4: os_sprintf(szTemp,"%d",*(uint32_t *)pValue); break;
+			default: szTemp[0]='\0'; break;
+		}
+		write_string(szTemp);
+		write_string("\"></input><br />");
+	}
+	public:
+	void write_header() {
+		write_string("<html><head><title>EspLightNode Configuration</title></head><body><h1>EspLightNode Configuration</h1>");
+		write_string("<form method=\"POST\" action=\"/save\">");
+	}
+
+	void write_footer() {
+		write_string("<input type=\"submit\" value=\"Save\"></input></form>");
+		write_string("</body></html>");
+	}
+
+	void start_transfer(struct HttpdConnectionSlot* slot) {
+		char szHeaders[256];
+		os_sprintf(szHeaders,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n",m_nTotalLen);
+		httpd_slot_setsentcb(slot, &chunk_sent_cb, (void*)this);
+		httpd_slot_send(slot, (uint8_t*)szHeaders, strlen(szHeaders));
+	}
+
+	void chunk_sent(struct HttpdConnectionSlot* slot) {
+		if (!m_lChunks.empty()) {
+			httpd_slot_setsentcb(slot, &chunk_sent_cb, this);
+			httpd_slot_send(slot, m_lChunks.front().pData, m_lChunks.front().nLen);
+			m_lChunks.pop_front();
+		} else {
+			httpd_slot_setdone(slot);
+			delete this;
+		}
+	}
+
+	static void chunk_sent_cb(struct HttpdConnectionSlot* slot, void *pData) {
+		((CConfigHtmlRunner *)pData)->chunk_sent(slot);
+	}
 };
 
-void config_html_write(struct ConfigRunnerHtml *runner, const uint8_t *data, uint16_t len) {
-	struct ConfigRunnerHtmlChunk *next;
-	uint16_t copy;
-	while (len && runner->current) {
-		if (runner->current->len >= CONFIGHTMLCHUNKSIZE) {
-			next = (struct ConfigRunnerHtmlChunk *)os_zalloc(sizeof(struct ConfigRunnerHtmlChunk));
-			if (next == NULL) {
-				runner->current = NULL;
-				break;
-			}
-			next->len = 0;
-			next->next = NULL;
-			runner->current->next = next;
-			runner->current = next;
-		}
-		copy = CONFIGHTMLCHUNKSIZE - runner->current->len;
-		if (copy > len) copy = len;
-		memcpy(&runner->current->data[runner->current->len], data, copy);
-		runner->current->len += copy;
-		runner->len += copy;
-		len -= copy;
-		data += copy;
-	}
-}
-
-void config_html_write_string(struct ConfigRunnerHtml *runner, const char *str) {
-	config_html_write(runner, (const uint8_t *)str, strlen(str));
-}
-
-void config_html_beginmodule(struct ConfigRunner *runner, const char *name, const char *description) {
-	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
-	config_html_write_string(htmlrunner, "<fieldset><legend>");
-	config_html_write_string(htmlrunner, description);
-	config_html_write_string(htmlrunner, "</legend>");
-	htmlrunner->lCategory.push_back(name);
-}
-
-void config_html_endmodule(struct ConfigRunner *runner) {
-	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
-	config_html_write_string(htmlrunner, "</fieldset>");
-	if (!htmlrunner->lCategory.empty())
-		htmlrunner->lCategory.pop_back();
-}
-void config_html_write_fieldprefix(struct ConfigRunnerHtml *runner) {
-	for (auto name : runner->lCategory) {
-		config_html_write_string(runner, name);
-		config_html_write_string(runner,".");
-	}
-}
-void config_html_booloption(struct ConfigRunner *runner, const char *name, const char *description, uint8_t *ptrvalue, uint8_t defvalue) {
-	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
-	config_html_write_string(htmlrunner, description);
-	config_html_write_string(htmlrunner, ": <input type=\"checkbox\" name=\"");
-	config_html_write_fieldprefix(htmlrunner);
-	config_html_write_string(htmlrunner, name);
-	config_html_write_string(htmlrunner, "\" value=\"1\"");
-	if (*ptrvalue)
-		config_html_write_string(htmlrunner," checked");
-	config_html_write_string(htmlrunner, "></input><br />");
-}
-void config_html_stringoption(struct ConfigRunner *runner, const char *name, const char *description, char *ptrvalue, uint16_t len, const char *defvalue) {
-	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
-	config_html_write_string(htmlrunner, description);
-	config_html_write_string(htmlrunner, ": <input type=\"text\" name=\"");
-	config_html_write_fieldprefix(htmlrunner);
-	config_html_write_string(htmlrunner, name);
-	config_html_write_string(htmlrunner, "\" value=\"");
-	config_html_write_string(htmlrunner, ptrvalue);
-	config_html_write_string(htmlrunner, "\"></input><br />");
-}
-void config_html_intoption(struct ConfigRunner *runner, const char *name, const char *description, void *ptrvalue, uint8_t size, uint32_t minvalue, uint32_t maxvalue, uint32_t defvalue) {
-	char szTemp[32];
-	struct ConfigRunnerHtml *htmlrunner = (struct ConfigRunnerHtml *)runner;
-	config_html_write_string(htmlrunner, description);
-	config_html_write_string(htmlrunner, ": <input type=\"text\" name=\"");
-	config_html_write_fieldprefix(htmlrunner);
-	config_html_write_string(htmlrunner, name);
-	config_html_write_string(htmlrunner, "\" value=\"");
-	switch (size) {
-		case 1: os_sprintf(szTemp,"%d",*(uint8_t *)ptrvalue); break;
-		case 2: os_sprintf(szTemp,"%d",*(uint16_t *)ptrvalue); break;
-		case 4: os_sprintf(szTemp,"%d",*(uint32_t *)ptrvalue); break;
-		default: szTemp[0]='\0'; break;
-	}
-	config_html_write_string(htmlrunner, szTemp);
-	config_html_write_string(htmlrunner, "\"></input><br />");
-}
-
-void config_html_sendchunk(struct HttpdConnectionSlot *slot, void *data) {
-	struct ConfigRunnerHtmlChunk *chunk = (struct ConfigRunnerHtmlChunk *)data;
-	httpd_slot_send(slot,chunk->data,chunk->len);
-	if (chunk->next) {
-		httpd_slot_setsentcb(slot, config_html_sendchunk, (void *)chunk->next);
-	} else {
-		httpd_slot_setdone(slot);
-	}
-	os_free((void*)chunk);
-}
-
 void config_html(struct HttpdConnectionSlot *slot) {
-	struct ConfigRunnerHtmlChunk *firstchunk = new ConfigRunnerHtmlChunk();
-	char headers[256];
-	firstchunk->len = 0;
-	firstchunk->next = NULL;
-
-	struct ConfigRunnerHtml runner;
-	runner.first = firstchunk;
-	runner.current = firstchunk;
-	runner.len = 0;
-
-	config_html_write_string(&runner, "<html><head><title>EspLightNode Configuration</title></head><body><h1>EspLightNode Configuration</h1>");
-	config_html_write_string(&runner, "<form method=\"POST\" action=\"/save\">");
-	runner.base.beginmodule = config_html_beginmodule;
-	runner.base.endmodule = config_html_endmodule;
-	runner.base.booloption = config_html_booloption;
-	runner.base.stringoption = config_html_stringoption;
-	runner.base.intoption = config_html_intoption;
-	config_run(&runner.base);
-	config_html_write_string(&runner, "<input type=\"submit\" value=\"Save\"></input></form>");
-	config_html_write_string(&runner, "</body></html>");
-
-	os_sprintf(headers,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n",runner.len);
-	httpd_slot_setsentcb(slot, config_html_sendchunk,(void *)firstchunk);
-	httpd_slot_send(slot, (uint8_t *)headers, strlen(headers));
+	CConfigHtmlRunner* pRunner = new CConfigHtmlRunner();
+	pRunner->write_header();
+	config_run(pRunner);
+	pRunner->write_footer();
+	pRunner->start_transfer(slot);
 }
 
 void config_submit(struct HttpdConnectionSlot *slot) {
