@@ -12,3 +12,7 @@ void operator delete(void *ptr) {
 	os_free(ptr);
 	return;
 }
+
+extern "C" void __cxa_pure_virtual() {
+	while (1);
+}

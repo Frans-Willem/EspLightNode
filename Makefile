@@ -9,8 +9,8 @@ OBJS:= cppcompat main \
 	output_protocols/ws2812 \
 	input_protocols/tpm2net \
 	input_protocols/artnet \
-	config/config config/IConfigRunner \
-	config/httpd
+	config/config config/IConfigRunner config/CConfigHtmlGenerator \
+	httpd/CTcpServer httpd/CTcpSocket config/httpd
 
 SDK:=/home/frans-willem/esp8266/SDK/esp_iot_sdk_v1.3.0
 PORT:=/dev/ttyUSB0
@@ -21,13 +21,14 @@ ESPTOOL:=esptool.py
 
 DEFINES:=-DENABLE_TPM2NET -DENABLE_ARTNET -DENABLE_WS2812
 CFLAGS:=-Os -ggdb -std=c99 -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
-	-nostdlib -mlongcalls -mtext-section-literals -Wno-address \
+	-nostdlib -mlongcalls -mno-text-section-literals -Wno-address \
 	-I./include/ -I./$(SRC_DIR) -I$(SDK)/include
 CXXFLAGS:=-Os -ggdb -std=c++0x -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
-	-nostdlib -mlongcalls -mtext-section-literals -Wno-address \
+	-nostdlib -mlongcalls -mno-text-section-literals -Wno-address \
 	-I./include/ -I./$(SRC_DIR) -I$(SDK)/include \
-	-fdump-rtl-expand -fno-exceptions
-LDFLAGS:= -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK)/lib -T$(SDK)/ld/eagle.app.v6.ld
+	-fno-exceptions -fno-rtti -fno-inline-functions \
+	-Wa,-rename-section,.text=.irom0.text
+LDFLAGS:= -nostdlib -Wl,--no-check-sections -Wl,-EL -Wl,-static -L$(SDK)/lib -T$(SDK)/ld/eagle.app.v6.ld -Wl,--gc-sections
 
 LIBS:= c gcc phy pp net80211 wpa main lwip stdc++
 
@@ -44,7 +45,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -MM $< -MT $@ > $(@:%.o=%.d)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/firmware.elf: $(OBJS:%=$(OBJ_DIR)/%.o) $(OBJSXX:%=$(OBJ_DIR)/%.o)
+$(OBJ_DIR)/firmware.a: $(OBJS:%=$(OBJ_DIR)/%.o) $(OBJSXX:%=$(OBJ_DIR)/%.o)
+	xtensa-lx106-elf-ar cru $@ $^
+
+$(OBJ_DIR)/firmware.elf: $(OBJ_DIR)/firmware.a
 	$(CC) -o $@ $(LDFLAGS) -Wl,--start-group $^ $(addprefix -l,$(LIBS)) -Wl,--end-group
 
 $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin): $(OBJ_DIR)/firmware.elf
