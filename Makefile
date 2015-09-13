@@ -10,7 +10,8 @@ OBJS:= cppcompat main \
 	input_protocols/tpm2net \
 	input_protocols/artnet \
 	config/config config/IConfigRunner config/CConfigHtmlGenerator \
-	httpd/CTcpServer httpd/CTcpSocket config/httpd
+	httpd/CTcpServer httpd/CTcpSocket config/httpd \
+	httpd/CHttpServer httpd/CHttpRequest
 
 SDK:=/home/frans-willem/esp8266/SDK/esp_iot_sdk_v1.3.0
 PORT:=/dev/ttyUSB0
