@@ -66,6 +66,13 @@ bool CTcpSocket::send(const uint8_t *pData, size_t nLen) {
 	return false;
 }
 
+void CTcpSocket::setTimeout(unsigned int nTimeout) {
+	if (!m_conn)
+		return;
+	// Last argument 0 means all connections, 1 means just this connection
+	espconn_regist_time(m_conn, nTimeout, 1);
+}
+
 void CTcpSocket::connect_callback(void *arg) {
 	struct espconn *conn = (struct espconn *)arg;
 	CTcpSocket *pSocket = (CTcpSocket *)conn->reverse;

@@ -17,6 +17,7 @@ class CTcpServer {
 		void fixConnectionParams();
 		void addListener(ITcpServerListener *pListener);
 		void removeListener(ITcpServerListener *pListener);
+		void setTimeout(unsigned int nTimeout);
 	private:
 		struct espconn m_conn;
 		esp_tcp m_tcp;

@@ -18,6 +18,7 @@ class CTcpSocket {
 		void addListener(ITcpSocketListener *pListener);
 		void removeListener(ITcpSocketListener *pListener);
 		bool send(const uint8_t *pData, size_t nLen);
+		void setTimeout(unsigned int nTimeout);
 	private:
 		~CTcpSocket();
 		void setupConnectionParams();

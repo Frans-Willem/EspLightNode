@@ -42,6 +42,11 @@ void CTcpServer::removeListener(ITcpServerListener *pListener) {
 	m_sListeners.erase(pListener);
 }
 
+void CTcpServer::setTimeout(unsigned int nTimeout) {
+	//last arg 0 means set for all child connections.
+	espconn_regist_time(&m_conn, nTimeout, 0);
+}
+
 void CTcpServer::connect_callback(void *arg) {
 	// arg points to the new connection,
 	// but "reverse" should be copied along.
