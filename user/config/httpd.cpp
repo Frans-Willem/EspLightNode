@@ -15,6 +15,7 @@ extern "C" {
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <strings.h>
 #include "httpd.h"
 #include "../config/config.h"
 
