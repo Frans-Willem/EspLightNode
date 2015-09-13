@@ -1,5 +1,10 @@
+#include <sdkfixup.h>
 #include "CTcpSocket.h"
 #include "CTcpServer.h"
+#include "string.h"
+extern "C" {
+#include <osapi.h>
+}
 
 CTcpSocket::CTcpSocket(CTcpServer *pServer, struct espconn *conn) {
 	m_pServer = pServer;
@@ -9,6 +14,8 @@ CTcpSocket::CTcpSocket(CTcpServer *pServer, struct espconn *conn) {
 }
 CTcpSocket::~CTcpSocket() {
 	//If all is well no cleanup is needed at this point.
+	for (auto cur : m_lBacklog)
+		delete[] cur.first;
 }
 
 void CTcpSocket::setupConnectionParams() {
@@ -47,7 +54,16 @@ void CTcpSocket::release() {
 bool CTcpSocket::send(const uint8_t *pData, size_t nLen) {
 	if (!m_conn)
 		return false;
-	return (ESPCONN_OK == espconn_sent(m_conn, (uint8_t *)pData, nLen));
+	int ret = espconn_sent(m_conn, (uint8_t *)pData, nLen);
+	if (ret == ESPCONN_OK)
+		return true;
+	if (ret == ESPCONN_MAXNUM) {
+		uint8_t *pCopy = new uint8_t[nLen];
+		memcpy(pCopy, pData, nLen);
+		m_lBacklog.push_back(std::make_pair(pCopy, nLen));
+		return true;
+	}
+	return false;
 }
 
 void CTcpSocket::connect_callback(void *arg) {
@@ -97,6 +113,13 @@ void CTcpSocket::recv_callback(void *arg, char *pData, unsigned short nLen) {
 void CTcpSocket::sent_callback(void *arg) {
 	struct espconn *conn = (struct espconn *)arg;
 	CTcpSocket *pSocket = (CTcpSocket *)conn->reverse;
+	if (!pSocket->m_lBacklog.empty()) {
+		std::pair<uint8_t*,size_t> current(pSocket->m_lBacklog.front());
+		pSocket->m_lBacklog.pop_front();
+		espconn_sent(pSocket->m_conn, current.first, current.second);
+		delete[] current.first;
+		return;
+	}
 	for (auto listener : pSocket->m_sListeners)
 		listener->onSocketSent(pSocket);
 }
