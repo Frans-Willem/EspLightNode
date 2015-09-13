@@ -22,6 +22,7 @@ extern "C" {
 
 #include <sys/cdefs.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 extern "C" {
 #include <os_type.h>
@@ -30,7 +31,10 @@ extern "C" {
 	void vPortFree( void *pv );
 	void *pvPortZalloc(size_t size);
 
-	void ets_sprintf(char *, const char *, ...);
+	typedef __builtin_va_list va_list;
+	int ets_sprintf(char *, const char *, ...);
+	int ets_vsprintf(char *str, const char *format, va_list ap);
+	int ets_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 	void* ets_memcpy(void *, const void*,size_t);
 	void ets_intr_lock();
 	void ets_intr_unlock();
