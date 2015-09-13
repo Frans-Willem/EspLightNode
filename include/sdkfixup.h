@@ -40,4 +40,12 @@ extern "C" {
 	void ets_timer_arm_new(os_timer_t *, uint32_t, bool, int);
 	void ets_timer_setfn(os_timer_t *, os_timer_func_t *, void *);
 }
+
+extern "C" {
+#include <ip_addr.h>
+#include <espconn.h>
+}
+#ifndef ESPCONN_MAXNUM
+#define ESPCONN_MAXNUM -7
+#endif
 #endif//__SDKFIXUP_H_
