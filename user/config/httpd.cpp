@@ -237,7 +237,7 @@ void httpd_sent_callback(void *arg) {
 	}
 }
 
-void httpd_slot_send(struct HttpdConnectionSlot *slot, uint8_t *data, uint16_t len) {
+void httpd_slot_send(struct HttpdConnectionSlot *slot, const uint8_t *data, uint16_t len) {
 	slot->sending = 1;
 	espconn_sent(slot->conn, (uint8 *)data, (uint16)len);
 }
