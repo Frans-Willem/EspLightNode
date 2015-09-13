@@ -13,6 +13,8 @@ extern "C" {
 #include <string.h>
 #include "httpd.h"
 #include <list>
+#include "CConfigHtmlGenerator.h"
+#include <sstream>
 
 class CConfigRunnerDefault : public IConfigRunner {
 void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool pbDefault) {
@@ -44,132 +46,86 @@ void config_load() {
 	config_run(&cRunner);
 }
 
-#define CONFIGHTMLCHUNKSIZE	512
-
-class CConfigHtmlRunner : public IConfigRunner {
-	std::list<const char *> m_lCategories;
-	struct Chunk {
-		uint8_t pData[CONFIGHTMLCHUNKSIZE];
-		size_t nLen;
-	};
-	size_t m_nTotalLen;
-	std::list<Chunk> m_lChunks;
-
-	void write(const uint8_t *pData, size_t nLen) {
-		while (nLen) {
-			if (m_lChunks.empty() || m_lChunks.back().nLen >= CONFIGHTMLCHUNKSIZE) {
-				m_lChunks.push_back(Chunk());
-			}
-			Chunk& curChunk = m_lChunks.back();
-			size_t nCurLen = std::min(nLen, CONFIGHTMLCHUNKSIZE - curChunk.nLen);
-			memcpy(&curChunk.pData[curChunk.nLen], pData, nCurLen);
-			curChunk.nLen += nCurLen;
-			m_nTotalLen += nCurLen;
-			nLen -= nCurLen;
-			pData = &pData[nCurLen];
-		}
-	}
-	void write_string(const char *szData) {
-		write((const uint8_t *)szData, strlen(szData));
-	}
-	void write_fieldprefix() {
-		for (auto name : m_lCategories) {
-			write_string(name);
-			write_string(".");
-		}
-	}
-
-	void beginModule(const char *szName, const char *szDescription) {
-		write_string("<fieldset><legend>");
-		write_string(szDescription);
-		write_string("</legend>");
-		m_lCategories.push_back(szName);
-	}
-	void endModule() {
-		write_string("</fieldset>");
-		if (!m_lCategories.empty())
-			m_lCategories.pop_back();
-	}
-	void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool bDefault) {
-		write_string(szDescription);
-		write_string(": <input type=\"checkbox\" name=\"");
-		write_fieldprefix();
-		write_string(szName);
-		write_string("\" value=\"1\"");
-		if (*pbValue)
-			write_string(" checked");
-		write_string("></input><br />");
-	}
-	void optionString(const char *szName, const char *szDescription, char *szValue, size_t nSize, const char *szDefault) {
-		write_string(szDescription);
-		write_string(": <input type=\"text\" name=\"");
-		write_fieldprefix();
-		write_string(szName);
-		write_string("\" value=\"");
-		write_string(szValue);
-		write_string("\"></input><br />");
-	}
-	void optionInt(const char *szName, const char *szDescription, void *pValue, size_t nSize, uint32_t nMin, uint32_t nMax, uint32_t nDefault) {
-		char szTemp[12];
-		write_string(szDescription);
-		write_string(": <input type=\"text\" name=\"");
-		write_fieldprefix();
-		write_string(szName);
-		write_string("\" value=\"");
-		switch (nSize) {
-			case 1: os_sprintf(szTemp,"%d",*(uint8_t *)pValue); break;
-			case 2: os_sprintf(szTemp,"%d",*(uint16_t *)pValue); break;
-			case 4: os_sprintf(szTemp,"%d",*(uint32_t *)pValue); break;
-			default: szTemp[0]='\0'; break;
-		}
-		write_string(szTemp);
-		write_string("\"></input><br />");
-	}
-	public:
-	void write_header() {
-		write_string("<html><head><title>EspLightNode Configuration</title></head><body><h1>EspLightNode Configuration</h1>");
-		write_string("<form method=\"POST\" action=\"/save\">");
-	}
-
-	void write_footer() {
-		write_string("<input type=\"submit\" value=\"Save\"></input></form>");
-		write_string("</body></html>");
-	}
-
-	void start_transfer(struct HttpdConnectionSlot* slot) {
-		char szHeaders[256];
-		os_sprintf(szHeaders,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n",m_nTotalLen);
-		httpd_slot_setsentcb(slot, &chunk_sent_cb, (void*)this);
-		httpd_slot_send(slot, (uint8_t*)szHeaders, strlen(szHeaders));
-	}
-
-	void chunk_sent(struct HttpdConnectionSlot* slot) {
-		if (!m_lChunks.empty()) {
-			httpd_slot_setsentcb(slot, &chunk_sent_cb, this);
-			httpd_slot_send(slot, m_lChunks.front().pData, m_lChunks.front().nLen);
-			m_lChunks.pop_front();
-		} else {
-			httpd_slot_setdone(slot);
-			delete this;
-		}
-	}
-
-	static void chunk_sent_cb(struct HttpdConnectionSlot* slot, void *pData) {
-		((CConfigHtmlRunner *)pData)->chunk_sent(slot);
-	}
-};
-
 void config_html(struct HttpdConnectionSlot *slot) {
-	CConfigHtmlRunner* pRunner = new CConfigHtmlRunner();
+	CConfigHtmlGenerator* pRunner = new CConfigHtmlGenerator();
 	pRunner->write_header();
 	config_run(pRunner);
 	pRunner->write_footer();
 	pRunner->start_transfer(slot);
 }
 
+class CBufferStream {
+	public:
+		CBufferStream(size_t nBlockSize) {
+			m_nLastLength = m_nBlockSize = nBlockSize;
+		}
+		~CBufferStream() {
+			for (auto block : m_lBuffers)
+				delete[] block;
+		}
+		CBufferStream& operator<<(const char *szData) {
+			write((const uint8_t *)szData, strlen(szData));
+			return *this;
+		}
+		CBufferStream& operator<<(int nNumber) {
+			char szTemp[16];
+			os_sprintf(szTemp,"%d", nNumber);
+			write((const uint8_t *)szTemp, strlen(szTemp));
+			return *this;
+		}
+		size_t getLength() {
+			if (m_lBuffers.empty())
+				return 0;
+			return ((m_lBuffers.size() - 1) * m_nBlockSize) + m_nLastLength;
+		}
+		void copyTo(uint8_t *pData, size_t nSize) {
+			for (auto block : m_lBuffers) {
+				size_t nBlockSize = (block == m_lBuffers.back()) ? m_nLastLength : m_nBlockSize;
+				size_t nCopy = std::min(nSize, nBlockSize);
+				memcpy(pData, block, nCopy);
+				nSize -= nCopy;
+				pData = &pData[nCopy];
+			}
+		}
+	private:
+		void write(const uint8_t *pData, size_t nSize) {
+			while (nSize) {
+				if (m_nLastLength >= m_nBlockSize) {
+					m_lBuffers.push_back(new uint8_t[m_nBlockSize]);
+					m_nLastLength = 0;
+				}
+				size_t nCurrent = std::min(nSize, m_nBlockSize-m_nLastLength);
+				memcpy(&m_lBuffers.back()[m_nLastLength], pData, nCurrent);
+				m_nLastLength += nCurrent;
+				nSize -= nCurrent;
+				pData = &pData[nCurrent];
+			}
+		}
+
+		std::list<uint8_t *> m_lBuffers;
+		size_t m_nLastLength;
+		size_t m_nBlockSize;
+};
+
 void config_submit(struct HttpdConnectionSlot *slot) {
-	const char *response = "<html><head><title>Settings saving</title></head><body>Settings saving...</body></html>";
-	char data[512];
-	os_sprintf(data,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n%s",strlen(response),response);
-	httpd_slot_send(slot, (uint8_t *)data, strlen(data));
+	CBufferStream colData(64), colHeaders(64);
+	colData << "Hello world!<br />";
+	colHeaders << "200 HTTP/1.0 OK\r\n";
+	colHeaders << "Content-Type: text/html\r\n";
+	colHeaders << "Content-Length: " << colData.getLength() << "\r\n\r\n";
+	uint8_t *pAll = new uint8_t[colHeaders.getLength() + colData.getLength()];
+	colHeaders.copyTo(pAll, colHeaders.getLength());
+	colData.copyTo(&pAll[colHeaders.getLength()], colData.getLength());
+
+	httpd_slot_send(slot, pAll, colHeaders.getLength() + colData.getLength());
+	//const char szData[] = "200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nHELP3";
+	//httpd_slot_send(slot, (const uint8_t *)szData, strlen(szData)); 
+
+	/*
+	std::stringstream ssOutput, ssHeaders;
+	ssOutput << "Hello world!";
+
+
+	std::string strHeaders(ssHeaders.str());
+	*/
 }
