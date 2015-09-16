@@ -14,13 +14,21 @@ class CHttpRequest : ITcpSocketListener {
 		void release();
 		void addListener(IHttpRequestListener *pListener);
 		void removeListener(IHttpRequestListener *pListener);
-		CTcpSocket *getSocket();
 		std::string getUri();
+		bool startHeaders(unsigned int nCode, const char *szMessage);
+		bool sendHeader(const char *szName, const char *szValue);
+		bool sendHeader(const char *szName, unsigned int nValue);
+		bool sendData(const uint8_t *pData, size_t nLength);
+		bool sendData(const char *szData);
+		void end(bool bForce);
 	private:
 		~CHttpRequest();
 		void onSocketRecv(CTcpSocket *pSocket, const uint8_t *pData, size_t nLen);
 		void onSocketDisconnected(CTcpSocket *pSocket);
 		void onSocketSent(CTcpSocket *pSocket);
+		void endHeaders();
+
+		void dispatchDataDone();
 
 		bool process();
 		//szHeader[nLength] = '\0';
@@ -34,16 +42,18 @@ class CHttpRequest : ITcpSocketListener {
 
 		CHttpServer *m_pOwner;
 		CTcpSocket *m_pSocket;
+		std::set<IHttpRequestListener*> m_sListeners;
+		//m_bHadError: if this is true, an error occured somewhere, and the socket should be closed ASAP.
 		bool m_bHadError;
 		unsigned int m_nRef;
-		std::set<IHttpRequestListener*> m_sListeners;
 		uint8_t m_pBuffer[HTTP_BUFFER_SIZE];
 		size_t m_nBufferFilled;
 		Verb m_vVerb;
 		std::string m_szUri;
 		bool m_bHeadersDone;
 		size_t m_nDataLeft;
-		
+		bool m_bResponseStarted;
+		bool m_bHeadersSent;
 };
 
 class IHttpRequestListener {

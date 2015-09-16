@@ -1,3 +1,4 @@
+#include <sdkfixup.h>
 #include "CHttpRequest.h"
 #include "CHttpServer.h"
 #include <string.h>
@@ -5,15 +6,19 @@ extern "C" {
 #include <osapi.h>
 }
 #include <vector>
+#include "debug/CDebugServer.h"
 
 CHttpRequest::CHttpRequest(CHttpServer *pOwner, CTcpSocket *pSocket) {
 	m_pOwner = pOwner;
 	m_pSocket = pSocket;
 	m_pSocket->addListener(this);
 	m_nRef = 1;
+	DEBUG("CHttpRequest::CHttpRequest(); = %08X", this);
 }
 CHttpRequest::~CHttpRequest() {
-	m_pSocket->removeListener(this);
+	if (m_pSocket)
+		m_pSocket->removeListener(this);
+	DEBUG("CHttpRequest::~CHttpRequest(%08X);", this);
 }
 
 void CHttpRequest::addRef() {
@@ -21,8 +26,8 @@ void CHttpRequest::addRef() {
 }
 
 void CHttpRequest::release() {
-	m_nRef--;
-	//TODO: delete
+	if (--m_nRef == 0)
+		delete this;
 }
 
 void CHttpRequest::addListener(IHttpRequestListener *pListener) {
@@ -33,10 +38,6 @@ void CHttpRequest::addListener(IHttpRequestListener *pListener) {
 void CHttpRequest::removeListener(IHttpRequestListener *pListener) {
 	if (m_sListeners.erase(pListener) > 0)
 		release();
-}
-
-CTcpSocket *CHttpRequest::getSocket() {
-	return m_pSocket;
 }
 
 std::string CHttpRequest::getUri() {
@@ -53,10 +54,8 @@ void CHttpRequest::onSocketRecv(CTcpSocket *pSocket, const uint8_t *pData, size_
 			if (nLen > 0) {
 				for (auto listener : m_sListeners)
 					listener->onData(this, pData, nLen);
-				if (m_nDataLeft == 0) {
-					for (auto listener : m_sListeners)
-						listener->onDataDone(this);
-				}
+				if (m_nDataLeft == 0)
+					dispatchDataDone();
 			}
 			return;
 		}
@@ -76,14 +75,26 @@ void CHttpRequest::onSocketRecv(CTcpSocket *pSocket, const uint8_t *pData, size_
 }
 
 void CHttpRequest::onSocketDisconnected(CTcpSocket *pSocket) {
-	for (auto listener : m_sListeners)
+	DEBUG("CHttpRequest::onSocketDisconnected(%08X)",this);
+	std::set<IHttpRequestListener*> sCopy(m_sListeners);
+	//Remove all listeners at this point.
+	m_sListeners.clear();
+	addRef();
+	for (auto listener : sCopy) {
 		listener->onDisconnected(this);
-	delete this;
+		release();
+	}
+
+	if (m_pSocket) {
+		m_pSocket=(CTcpSocket*)NULL;
+		release();
+	}
+	release();
 }
 
 void CHttpRequest::onSocketSent(CTcpSocket *pSocket) {
 	if (m_bHadError) {
-		//TODO: Close the socket?
+		pSocket->disconnect(true);
 	}
 }
 
@@ -102,8 +113,7 @@ bool CHttpRequest::process() {
 				for (auto listener : m_sListeners)
 					listener->onData(this, &m_pBuffer[nProcessed], nProcess);
 				if (m_nDataLeft == 0)
-					for (auto listener : m_sListeners)
-						listener->onDataDone(this);
+					dispatchDataDone();
 			}
 			return true;
 		}
@@ -153,12 +163,12 @@ bool CHttpRequest::processHeader(char *szHeader, size_t nLength) {
 			return false;
 		}
 
-		size_t nUriLength = nSpaces[1] - nSpaces[0];
+		size_t nUriLength = (nSpaces[1] - nSpaces[0])-1;
 		if (nUriLength == 0) {
 			onError(400, "Bad Request", "Empty URI");
 			return false;
 		}
-		m_szUri = std::string(&szHeader[nSpaces[0]], nUriLength);
+		m_szUri = std::string(&szHeader[nSpaces[0]+1], nUriLength);
 		//Trigger onRequest on the server
 		m_pOwner->onRequest(this);
 		return true;
@@ -167,8 +177,7 @@ bool CHttpRequest::processHeader(char *szHeader, size_t nLength) {
 		for (auto listener : m_sListeners)
 			listener->onHeadersDone(this, m_nDataLeft);
 		if (m_nDataLeft == 0)
-			for (auto listener : m_sListeners)
-				listener->onDataDone(this);
+			dispatchDataDone();
 		return true;
 	} else {
 		size_t nSplit;
@@ -190,15 +199,76 @@ bool CHttpRequest::processHeader(char *szHeader, size_t nLength) {
 			listener->onHeader(this, szName, szValue);
 		return true;
 	}
-	onError(400,"Bad Request","Unknown error");
+	onError(400,"bad request","unknown error");
 	return false;
 }
 
 void CHttpRequest::onError(unsigned int nCode, const char *szType, const char *szDescription) {
 	if (m_bHadError)
 		return;
-	char szTemp[512];
 	m_bHadError = true;
-	os_sprintf(szTemp,"HTTP/1.0 %d %s\r\nContent-Length: %d\r\nContent-Type: text/plain\r\n\r\n%s",nCode,szType,strlen(szDescription),szDescription);
-	m_pSocket->send((uint8_t *)szTemp,strlen(szTemp));
+	startHeaders(nCode, szType);
+	sendHeader("Content-Length", strlen(szDescription));
+	sendHeader("Content-Type", "text/plain");
+	sendData(szDescription);
+	end(false);
+}
+
+bool CHttpRequest::startHeaders(unsigned int nCode, const char *szMessage) {
+	if (m_bResponseStarted || !m_pSocket)
+		return false;
+	m_bResponseStarted = true;
+	static char szTemp[512];
+	ets_sprintf(szTemp,"HTTP/1.0 %d %s\r\n",nCode,szMessage);
+	return m_pSocket->send((uint8_t *)szTemp, strlen(szTemp));
+}
+
+bool CHttpRequest::sendHeader(const char *szName, const char *szValue) {
+	if (m_bHeadersSent || !m_bResponseStarted || !m_pSocket)
+		return false;
+	int nNameLen=strlen(szName);
+	int nValueLen=strlen(szValue);
+	char *szTemp = new char[nNameLen + 2 + nValueLen + 2];
+	memcpy(szTemp,szName,nNameLen);
+	memcpy(&szTemp[nNameLen],": ",2);
+	memcpy(&szTemp[nNameLen+2],szValue,nValueLen);
+	memcpy(&szTemp[nNameLen+2+nValueLen],"\r\n",2);
+	bool bRetval = m_pSocket->send((uint8 *)szTemp, nNameLen+2+nValueLen+2);
+	delete[] szTemp;
+	return bRetval;
+}
+bool CHttpRequest::sendHeader(const char *szName, unsigned int nValue) {
+	char szTemp[16];
+	os_sprintf(szTemp,"%u", nValue);
+	return sendHeader(szName, szTemp);
+}
+
+void CHttpRequest::endHeaders() {
+	if (!m_pSocket || m_bHeadersSent)
+		return;
+	m_pSocket->send((const uint8_t *)"\r\n",2);
+	m_bHeadersSent = true;
+}
+
+bool CHttpRequest::sendData(const uint8_t *pData, size_t nLength) {
+	if (!m_bResponseStarted || !m_pSocket)
+		return false;
+	endHeaders();
+	return m_pSocket->send(pData, nLength);
+}
+
+bool CHttpRequest::sendData(const char *szData) {
+	return sendData((const uint8_t *)szData, strlen(szData));
+}
+
+void CHttpRequest::end(bool bForce) {
+	if (m_pSocket)
+		m_pSocket->disconnect(bForce);
+}
+
+void CHttpRequest::dispatchDataDone() {
+	for (auto listener : m_sListeners)
+		listener->onDataDone(this);
+	if (m_sListeners.empty())
+		onError(404,"File not found","File not found");
 }
