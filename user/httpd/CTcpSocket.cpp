@@ -5,17 +5,20 @@
 extern "C" {
 #include <osapi.h>
 }
+#include "debug/CDebugServer.h"
 
 CTcpSocket::CTcpSocket(CTcpServer *pServer, struct espconn *conn) {
 	m_pServer = pServer;
 	m_conn = conn;
 	m_nRef = 1;
 	setupConnectionParams();
+	DEBUG("CTcpSocket::CTcpSocket() = %08X",this);
 }
 CTcpSocket::~CTcpSocket() {
 	//If all is well no cleanup is needed at this point.
 	for (auto cur : m_lBacklog)
 		delete[] cur.first;
+	DEBUG("CTcpSocket::~CTcpSocket(%08X)", this);
 }
 
 void CTcpSocket::setupConnectionParams() {
@@ -29,6 +32,12 @@ void CTcpSocket::setupConnectionParams() {
 	espconn_regist_sentcb(m_conn, sent_callback);
 }
 
+void CTcpSocket::dropConnectionParams() {
+	if (!m_conn)
+		return;
+	m_conn->reverse = NULL;
+}
+
 void CTcpSocket::addListener(ITcpSocketListener *pListener) {
 	if (m_sListeners.insert(pListener).second)
 		addRef();
@@ -39,9 +48,11 @@ void CTcpSocket::removeListener(ITcpSocketListener *pListener) {
 }
 
 void CTcpSocket::addRef() {
+	DEBUG("CTcpSocket::addRef(%08X): %d -> %d", this, m_nRef, m_nRef+1);
 	m_nRef++;
 }
 void CTcpSocket::release() {
+	DEBUG("CTcpSocket::release(%08X): %d -> %d", this, m_nRef, m_nRef-1);
 	if (--m_nRef == 0) {
 		if (!m_conn) {
 			delete this;
@@ -52,17 +63,19 @@ void CTcpSocket::release() {
 }
 
 bool CTcpSocket::send(const uint8_t *pData, size_t nLen) {
-	if (!m_conn)
+	if (!m_conn || m_bDisconnecting)
 		return false;
-	int ret = espconn_sent(m_conn, (uint8_t *)pData, nLen);
-	if (ret == ESPCONN_OK)
-		return true;
-	if (ret == ESPCONN_MAXNUM) {
+	if (m_bSending) {
 		uint8_t *pCopy = new uint8_t[nLen];
 		memcpy(pCopy, pData, nLen);
 		m_lBacklog.push_back(std::make_pair(pCopy, nLen));
 		return true;
 	}
+	m_bSending = true;
+	int ret = espconn_sent(m_conn, (uint8_t *)pData, nLen);
+	if (ret == ESPCONN_OK)
+		return true;
+	m_bSending = false;
 	return false;
 }
 
@@ -71,6 +84,24 @@ void CTcpSocket::setTimeout(unsigned int nTimeout) {
 		return;
 	// Last argument 0 means all connections, 1 means just this connection
 	espconn_regist_time(m_conn, nTimeout, 1);
+}
+
+void CTcpSocket::disconnect(bool bForce) {
+	if (!m_conn)
+		return;
+	if (bForce) {
+		for (auto b : m_lBacklog)
+			delete[] b.first;
+		m_lBacklog.clear();
+		espconn_disconnect(m_conn);
+		m_bDisconnecting = true;
+		return;
+	}
+	if (!m_bDisconnecting) {
+		m_bDisconnecting = true;
+		if (!m_bSending)
+			espconn_disconnect(m_conn);
+	}
 }
 
 void CTcpSocket::connect_callback(void *arg) {
@@ -105,6 +136,8 @@ void CTcpSocket::disconnect_callback(void *arg) {
 void CTcpSocket::reconnect_callback(void *arg, sint8) {
 	struct espconn *conn = (struct espconn *)arg;
 	CTcpSocket *pSocket = (CTcpSocket *)conn->reverse;
+	if (!pSocket)
+		return;
 	if (pSocket->m_conn != conn) {
 		//Assume ESP SDK fuckup
 		if (pSocket->m_pServer)
@@ -114,17 +147,26 @@ void CTcpSocket::reconnect_callback(void *arg, sint8) {
 void CTcpSocket::recv_callback(void *arg, char *pData, unsigned short nLen) {
 	struct espconn *conn = (struct espconn *)arg;
 	CTcpSocket *pSocket = (CTcpSocket *)conn->reverse;
+	if (!pSocket)
+		return;
 	for (auto listener : pSocket->m_sListeners)
 		listener->onSocketRecv(pSocket, (const uint8_t *)pData, nLen);
 }
 void CTcpSocket::sent_callback(void *arg) {
 	struct espconn *conn = (struct espconn *)arg;
 	CTcpSocket *pSocket = (CTcpSocket *)conn->reverse;
+	if (!pSocket)
+		return;
 	if (!pSocket->m_lBacklog.empty()) {
 		std::pair<uint8_t*,size_t> current(pSocket->m_lBacklog.front());
 		pSocket->m_lBacklog.pop_front();
 		espconn_sent(pSocket->m_conn, current.first, current.second);
 		delete[] current.first;
+		return;
+	}
+	pSocket->m_bSending = false;
+	if (pSocket->m_bDisconnecting) {
+		espconn_disconnect(conn);
 		return;
 	}
 	for (auto listener : pSocket->m_sListeners)

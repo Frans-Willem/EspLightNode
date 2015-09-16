@@ -19,15 +19,19 @@ class CTcpSocket {
 		void removeListener(ITcpSocketListener *pListener);
 		bool send(const uint8_t *pData, size_t nLen);
 		void setTimeout(unsigned int nTimeout);
+		void disconnect(bool bForce);
 	private:
 		~CTcpSocket();
 		void setupConnectionParams();
+		void dropConnectionParams();
 
 		unsigned int m_nRef;
 		CTcpServer *m_pServer;
 		struct espconn *m_conn;
 		std::set<ITcpSocketListener*> m_sListeners;
 		std::list<std::pair<uint8_t*,size_t>> m_lBacklog;
+		bool m_bSending;
+		bool m_bDisconnecting;
 
 		static void connect_callback(void *arg);
 		static void reconnect_callback(void *arg, sint8);
