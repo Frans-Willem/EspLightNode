@@ -71,11 +71,11 @@ $(OBJ_DIR)/firmware_stage1.elf: $(OBJS:%=$(OBJ_DIR)/%.o) $(OBJSXX:%=$(OBJ_DIR)/%
 
 # Find all sections starting with .text (either .text, or a function-specific section starting with .text)
 $(OBJ_DIR)/function-sections.txt: $(OBJ_DIR)/firmware_stage1.elf
-	$(OBJDUMP) -h $^ | grep "^[[:digit:]]\+\W\+\.text" | awk '{print $$2}' > $@
+	$(OBJDUMP) -h $^ | grep "^\W*[[:digit:]]\+\W\+\.text" | awk '{print $$2}' > $@
 
 # Same as above, for literals
 $(OBJ_DIR)/literal-sections.txt: $(OBJ_DIR)/firmware_stage1.elf
-	$(OBJDUMP) -h $^ | grep "^[[:digit:]]\+\W\+\.literal" | awk '{print $$2}' > $@
+	$(OBJDUMP) -h $^ | grep "^\W*[[:digit:]]\+\W\+\.literal" | awk '{print $$2}' > $@
 
 # Create a list of all sections that should be renamed to .irom0.text (the big flash section)
 $(OBJ_DIR)/rename-sections.txt: $(OBJ_DIR)/function-sections.txt $(OBJ_DIR)/literal-sections.txt
