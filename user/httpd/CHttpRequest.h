@@ -61,7 +61,7 @@ class IHttpRequestListener {
 		virtual ~IHttpRequestListener() {};
 		virtual void onHeader(CHttpRequest *pRequest, const char *szName, const char *szValue) = 0;
 		virtual void onHeadersDone(CHttpRequest *pRequest, size_t nDataLength) = 0;
-		virtual void onData(CHttpRequest *pRequest, const uint8_t *pData, size_t nData) = 0;
+		virtual void onData(CHttpRequest *pRequest, const uint8_t *pData, size_t nLength) = 0;
 		virtual void onDataDone(CHttpRequest *pRequest) = 0;
 		virtual void onSent(CHttpRequest *pRequest) = 0;
 		virtual void onDisconnected(CHttpRequest *pRequest) = 0;
