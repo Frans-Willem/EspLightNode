@@ -20,7 +20,6 @@ extern "C" {
 #include "output_protocols/ws2812.h"
 #include "input_protocols/artnet.h"
 #include "input_protocols/tpm2net.h"
-#include "config/httpd.h"
 #include "config/config.h"
 
 static os_timer_t client_timer;
@@ -40,7 +39,6 @@ static void ICACHE_FLASH_ATTR wait_for_ip(uint8 flag) {
 #ifdef ENABLE_ARTNET
         	artnet_init();
 #endif
-        	httpd_init();
         } else {
             os_timer_setfn(&client_timer, (os_timer_func_t *)wait_for_ip, NULL);
             os_timer_arm(&client_timer, 100, 0);
