@@ -4,7 +4,7 @@
 #include "httpd/CTcpSocket.h"
 #include <set>
 
-#define DEBUG(f,args...)	CDebugServer::get()->send("%s:%d: " f "\r\n", __FILE__, __LINE__, args)
+#define DEBUG(f,args...)	CDebugServer::get()->send("%s:%d: " f "\r\n", __FILE__, __LINE__, ##args)
 
 class CDebugServer : ITcpServerListener, ITcpSocketListener {
 	public:
