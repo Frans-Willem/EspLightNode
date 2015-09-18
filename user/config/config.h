@@ -9,11 +9,11 @@
 #define CONFIG_CONFIG_H_
 #include "IConfigRunner.h"
 
+class CHttpServer;
 class CHttpRequest;
 void config_load();
-void config_html(CHttpRequest *pRequest);
-void config_submit(CHttpRequest *pRequest);
 void config_run(IConfigRunner *pRunner);
+void config_init(CHttpServer *pServer);
 
 #define DEFINE_CONFIG(module) void module ## _runconfig(IConfigRunner *_configrunner);
 

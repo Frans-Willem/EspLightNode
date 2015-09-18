@@ -14,7 +14,7 @@ extern "C" {
 #include <list>
 #include "CConfigHtmlGenerator.h"
 #include <sstream>
-#include "httpd/CHttpRequest.h"
+#include "httpd/CHttpServer.h"
 
 class CConfigRunnerDefault : public IConfigRunner {
 	void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool pbDefault) {
@@ -46,8 +46,33 @@ void config_load() {
 	config_run(&cRunner);
 }
 
-void config_html(CHttpRequest *pRequest) {
-	CConfigHtmlGenerator::handle(pRequest);
+class CConfigHttpServerListener : IHttpServerListener {
+public:
+	static void attach(CHttpServer *pServer) {
+		if (m_gInstance == NULL)
+			m_gInstance = new CConfigHttpServerListener();
+		pServer->addListener(m_gInstance);
+	}
+	static void detach(CHttpServer *pServer) {
+		pServer->removeListener(m_gInstance);
+	}
+private:
+	static CConfigHttpServerListener* m_gInstance;
+
+	bool onRequest(CHttpServer *pServer, CHttpRequest *pRequest) {
+		std::string szUri = pRequest->getUri();
+		if (szUri.compare("/") == 0 || szUri.compare("/index.html")==0) {
+			CConfigHtmlGenerator::handle(pRequest);
+			return true;
+		}
+		return false;
+	}
+
+};
+CConfigHttpServerListener* CConfigHttpServerListener::m_gInstance = NULL;
+
+void config_init(CHttpServer *pServer) {
+	CConfigHttpServerListener::attach(pServer);
 }
 
 class CBufferStream {
@@ -103,15 +128,3 @@ class CBufferStream {
 		size_t m_nBlockSize;
 };
 
-void config_submit(struct HttpdConnectionSlot *slot) {
-	CBufferStream colData(64), colHeaders(64);
-	colData << "Hello world!<br />";
-	colHeaders << "200 HTTP/1.0 OK\r\n";
-	colHeaders << "Content-Type: text/html\r\n";
-	colHeaders << "Content-Length: " << colData.getLength() << "\r\n\r\n";
-	uint8_t *pAll = new uint8_t[colHeaders.getLength() + colData.getLength()];
-	colHeaders.copyTo(pAll, colHeaders.getLength());
-	colData.copyTo(&pAll[colHeaders.getLength()], colData.getLength());
-
-	//httpd_slot_send(slot, pAll, colHeaders.getLength() + colData.getLength());
-}

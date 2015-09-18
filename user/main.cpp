@@ -21,6 +21,8 @@ extern "C" {
 #include "input_protocols/artnet.h"
 #include "input_protocols/tpm2net.h"
 #include "config/config.h"
+#include "debug/CDebugServer.h"
+#include "httpd/CHttpServer.h"
 
 static os_timer_t client_timer;
 static void ICACHE_FLASH_ATTR wait_for_ip(uint8 flag) {
@@ -33,6 +35,9 @@ static void ICACHE_FLASH_ATTR wait_for_ip(uint8 flag) {
         wifi_get_ip_info(STATION_IF, &ipconfig);
         if( ipconfig.ip.addr != 0) {
         	//Start UDP server
+		DEBUG("Started %s", "OK");
+		CHttpServer *pServer = new CHttpServer(80);
+		config_init(pServer);
 #ifdef ENABLE_TPM2
         	tpm2net_init();
 #endif
