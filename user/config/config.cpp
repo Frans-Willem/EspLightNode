@@ -11,10 +11,10 @@ extern "C" {
 }
 #include "config.h"
 #include <string.h>
-#include "httpd.h"
 #include <list>
 #include "CConfigHtmlGenerator.h"
 #include <sstream>
+#include "httpd/CHttpRequest.h"
 
 class CConfigRunnerDefault : public IConfigRunner {
 void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool pbDefault) {
@@ -46,12 +46,8 @@ void config_load() {
 	config_run(&cRunner);
 }
 
-void config_html(struct HttpdConnectionSlot *slot) {
-	CConfigHtmlGenerator* pRunner = new CConfigHtmlGenerator();
-	pRunner->write_header();
-	config_run(pRunner);
-	pRunner->write_footer();
-	pRunner->start_transfer(slot);
+void config_html(CHttpRequest *pRequest) {
+	CConfigHtmlGenerator::handle(pRequest);
 }
 
 class CBufferStream {
@@ -117,15 +113,5 @@ void config_submit(struct HttpdConnectionSlot *slot) {
 	colHeaders.copyTo(pAll, colHeaders.getLength());
 	colData.copyTo(&pAll[colHeaders.getLength()], colData.getLength());
 
-	httpd_slot_send(slot, pAll, colHeaders.getLength() + colData.getLength());
-	//const char szData[] = "200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nHELP3";
-	//httpd_slot_send(slot, (const uint8_t *)szData, strlen(szData)); 
-
-	/*
-	std::stringstream ssOutput, ssHeaders;
-	ssOutput << "Hello world!";
-
-
-	std::string strHeaders(ssHeaders.str());
-	*/
+	//httpd_slot_send(slot, pAll, colHeaders.getLength() + colData.getLength());
 }

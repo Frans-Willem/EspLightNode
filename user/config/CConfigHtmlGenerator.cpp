@@ -4,7 +4,16 @@ extern "C" {
 #include <osapi.h>
 }
 #include "CConfigHtmlGenerator.h"
-#include "httpd.h"
+#include "httpd/CHttpRequest.h"
+#include "config/config.h"
+
+void CConfigHtmlGenerator::handle(CHttpRequest *pRequest) {
+	pRequest->addListener(new CConfigHtmlGenerator(pRequest));
+}
+
+CConfigHtmlGenerator::CConfigHtmlGenerator(CHttpRequest *pRequest) {
+	m_pRequest = pRequest;
+}
 
 void CConfigHtmlGenerator::beginModule(const char *szName, const char *szDescription) {
 	write("<fieldset><legend>");
@@ -52,6 +61,33 @@ void CConfigHtmlGenerator::optionInt(const char *szName, const char *szDescripti
 	write(szTemp);
 	write("\"></input><br />");
 }
+void CConfigHtmlGenerator::onHeader(CHttpRequest *pRequest, const char *szName, const char *szValue) {
+}
+void CConfigHtmlGenerator::onHeadersDone(CHttpRequest *pRequest, size_t nDataLength) {
+}
+void CConfigHtmlGenerator::onData(CHttpRequest *pRequest, const uint8_t *pData, size_t nLength) {
+}
+void CConfigHtmlGenerator::onDataDone(CHttpRequest *pRequest) {
+	write_header();
+	config_run(this);
+	write_footer();
+	pRequest->startHeaders(200, "OK");
+	pRequest->sendHeader("Content-Type", "text/html");
+	pRequest->sendHeader("Content-Length", m_nTotalLen);
+	pRequest->endHeaders();
+	//Actual data will be sent in onSent
+}
+void CConfigHtmlGenerator::onSent(CHttpRequest *pRequest) {
+	if (m_lChunks.empty()) {
+		pRequest->end(false);
+	} else {
+		pRequest->sendData(m_lChunks.front().pData, m_lChunks.front().nLen);
+		m_lChunks.pop_front();
+	}
+}
+void CConfigHtmlGenerator::onDisconnected(CHttpRequest *pRequest) {
+	delete this;
+}
 //Only
 void CConfigHtmlGenerator::write_header() {
 	write("<html><head><title>EspLightNode Configuration</title></head><body><h1>EspLightNode Configuration</h1>");
@@ -61,11 +97,13 @@ void CConfigHtmlGenerator::write_footer() {
 	write("<input type=\"submit\" value=\"Save\"></input></form>");
 	write("</body></html>");
 }
-void CConfigHtmlGenerator::start_transfer(struct HttpdConnectionSlot* slot) {
-		char szHeaders[256];
-		os_sprintf(szHeaders,"200 HTTP/1.0 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n",m_nTotalLen);
-		httpd_slot_setsentcb(slot, &chunk_sent_callback, (void*)this);
-		httpd_slot_send(slot, (uint8_t*)szHeaders, strlen(szHeaders));
+void CConfigHtmlGenerator::start_transfer(CHttpRequest *pRequest) {
+	pRequest->startHeaders(200, "OK");
+	pRequest->sendHeader("Content-Type", "text/html");
+	pRequest->sendHeader("Content-Length", m_nTotalLen);
+	for (auto chunk : m_lChunks)
+		pRequest->sendData(chunk.pData, chunk.nLen);
+	pRequest->end(false);
 }
 void CConfigHtmlGenerator::write_fieldprefix() {
 	for (auto name : m_lCategories) {
@@ -89,17 +127,4 @@ void CConfigHtmlGenerator::write(const uint8_t* pData, size_t nLen) {
 }
 void CConfigHtmlGenerator::write(const char* szData) {
 	write((const uint8_t *)szData, strlen(szData));
-}
-void CConfigHtmlGenerator::chunk_sent(struct HttpdConnectionSlot* slot) {
-	if (!m_lChunks.empty()) {
-		httpd_slot_setsentcb(slot, &chunk_sent_callback, this);
-		httpd_slot_send(slot, m_lChunks.front().pData, m_lChunks.front().nLen);
-		m_lChunks.pop_front();
-	} else {
-		httpd_slot_setdone(slot);
-		delete this;
-	}
-}
-void CConfigHtmlGenerator::chunk_sent_callback(struct HttpdConnectionSlot* slot, void *pData) {
-	((CConfigHtmlGenerator *)pData)->chunk_sent(slot);
 }

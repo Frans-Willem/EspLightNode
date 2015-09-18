@@ -9,10 +9,11 @@
 #define CONFIG_CONFIG_H_
 #include "IConfigRunner.h"
 
-struct HttpdConnectionSlot;
+class CHttpRequest;
 void config_load();
-void config_html(struct HttpdConnectionSlot *slot);
-void config_submit(struct HttpdConnectionSlot *slot);
+void config_html(CHttpRequest *pRequest);
+void config_submit(CHttpRequest *pRequest);
+void config_run(IConfigRunner *pRunner);
 
 #define DEFINE_CONFIG(module) void module ## _runconfig(IConfigRunner *_configrunner);
 
