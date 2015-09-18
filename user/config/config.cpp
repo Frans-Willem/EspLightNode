@@ -17,20 +17,20 @@ extern "C" {
 #include "httpd/CHttpRequest.h"
 
 class CConfigRunnerDefault : public IConfigRunner {
-void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool pbDefault) {
-	*pbValue = pbDefault;
-}
-void optionString(const char *szName, const char *szDescription, char *szValue, size_t nSize, const char *szDefault) {
-	strncpy(szValue, szDefault, nSize-1);
-	szValue[nSize-1]='\0';
-}
-void optionInt(const char *szName, const char *szDescription, void *pValue, size_t nSize, uint32_t nMin, uint32_t nMax, uint32_t nDefault) {
-	switch (nSize) {
-		case 1: *(uint8_t *)pValue = nDefault; break;
-		case 2: *(uint16_t *)pValue = nDefault; break;
-		case 4: *(uint32_t *)pValue = nDefault; break;
+	void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool pbDefault) {
+		*pbValue = pbDefault;
 	}
-}
+	void optionString(const char *szName, const char *szDescription, char *szValue, size_t nSize, const char *szDefault) {
+		strncpy(szValue, szDefault, nSize-1);
+		szValue[nSize-1]='\0';
+	}
+	void optionInt(const char *szName, const char *szDescription, void *pValue, size_t nSize, uint32_t nMin, uint32_t nMax, uint32_t nDefault) {
+		switch (nSize) {
+			case 1: *(uint8_t *)pValue = nDefault; break;
+			case 2: *(uint16_t *)pValue = nDefault; break;
+			case 4: *(uint32_t *)pValue = nDefault; break;
+		}
+	}
 };
 
 DEFINE_CONFIG(artnet);
