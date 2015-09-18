@@ -19,5 +19,6 @@ void CHttpServer::onConnection(CTcpSocket *pSocket) {
 
 void CHttpServer::onRequest(CHttpRequest *pRequest) {
 	for (auto listener : m_sListeners)
-		listener->onRequest(this, pRequest);
+		if (listener->onRequest(this, pRequest))
+			return;
 }

@@ -23,6 +23,7 @@ class CHttpServer : ITcpServerListener {
 class IHttpServerListener {
 	public:
 		virtual ~IHttpServerListener() {};
-		virtual void onRequest(CHttpServer *pServer, CHttpRequest *pRequest) = 0;
+		// Return true if you are going to handle the request, no further listeners will be informed.
+		virtual bool onRequest(CHttpServer *pServer, CHttpRequest *pRequest) = 0;
 };
 #endif//HTTPD_CHTTPSERVER_H
