@@ -96,6 +96,8 @@ void CHttpRequest::onSocketSent(CTcpSocket *pSocket) {
 	if (m_bHadError) {
 		pSocket->disconnect(true);
 	}
+	for (auto listener : m_sListeners)
+		listener->onSent(this);
 }
 
 bool CHttpRequest::process() {

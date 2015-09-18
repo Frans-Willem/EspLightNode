@@ -18,6 +18,7 @@ class CHttpRequest : ITcpSocketListener {
 		bool startHeaders(unsigned int nCode, const char *szMessage);
 		bool sendHeader(const char *szName, const char *szValue);
 		bool sendHeader(const char *szName, unsigned int nValue);
+		void endHeaders();
 		bool sendData(const uint8_t *pData, size_t nLength);
 		bool sendData(const char *szData);
 		void end(bool bForce);
@@ -26,7 +27,6 @@ class CHttpRequest : ITcpSocketListener {
 		void onSocketRecv(CTcpSocket *pSocket, const uint8_t *pData, size_t nLen);
 		void onSocketDisconnected(CTcpSocket *pSocket);
 		void onSocketSent(CTcpSocket *pSocket);
-		void endHeaders();
 
 		void dispatchDataDone();
 
@@ -63,6 +63,7 @@ class IHttpRequestListener {
 		virtual void onHeadersDone(CHttpRequest *pRequest, size_t nDataLength) = 0;
 		virtual void onData(CHttpRequest *pRequest, const uint8_t *pData, size_t nData) = 0;
 		virtual void onDataDone(CHttpRequest *pRequest) = 0;
+		virtual void onSent(CHttpRequest *pRequest) = 0;
 		virtual void onDisconnected(CHttpRequest *pRequest) = 0;
 };
 #endif//HTTPD_CHTTPREQUEST_H
