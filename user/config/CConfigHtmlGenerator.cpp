@@ -91,7 +91,7 @@ void CConfigHtmlGenerator::onDisconnected(CHttpRequest *pRequest) {
 //Only
 void CConfigHtmlGenerator::write_header() {
 	write("<html><head><title>EspLightNode Configuration</title></head><body><h1>EspLightNode Configuration</h1>");
-	write("<form method=\"POST\" action=\"/save\">");
+	write("<form method=\"POST\" action=\"/submit.cgi\">");
 }
 void CConfigHtmlGenerator::write_footer() {
 	write("<input type=\"submit\" value=\"Save\"></input></form>");
