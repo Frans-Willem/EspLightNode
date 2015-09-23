@@ -56,6 +56,8 @@ void CConfigPostHandler::onData(CHttpRequest *pRequest, const uint8_t *pData, si
 		} else if (pData[i] == '%') {
 			m_cEscape = 0;
 			m_nEscapeLeft = 2;
+		} else if (pData[i] == '+') {
+			m_vBuffer.push_back(' ');
 		} else {
 			m_vBuffer.push_back(pData[i]);
 		}
