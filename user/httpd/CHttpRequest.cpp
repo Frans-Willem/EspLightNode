@@ -7,6 +7,7 @@ extern "C" {
 }
 #include <vector>
 #include "debug/CDebugServer.h"
+#include <stdlib.h>
 
 CHttpRequest::CHttpRequest(CHttpServer *pOwner, CTcpSocket *pSocket) {
 	m_pOwner = pOwner;
@@ -49,6 +50,7 @@ void CHttpRequest::onSocketRecv(CTcpSocket *pSocket, const uint8_t *pData, size_
 		return;
 	while (nLen) {
 		if (m_bHeadersDone) {
+			DEBUG("Data after headers, %d bytes, %d left", nLen, m_nDataLeft);
 			nLen = std::min(nLen, m_nDataLeft);
 			m_nDataLeft -= nLen;
 			if (nLen > 0) {
@@ -111,7 +113,7 @@ bool CHttpRequest::process() {
 		if (m_bHeadersDone) {
 			if (m_nDataLeft > 0) {
 				size_t nProcess = std::min(m_nBufferFilled - nProcessed, m_nDataLeft);
-				m_nDataLeft = nProcess;
+				m_nDataLeft -= nProcess;
 				for (auto listener : m_sListeners)
 					listener->onData(this, &m_pBuffer[nProcessed], nProcess);
 				if (m_nDataLeft == 0)
@@ -191,11 +193,21 @@ bool CHttpRequest::processHeader(char *szHeader, size_t nLength) {
 			szValue = "";
 		} else {
 			szHeader[nSplit]='\0';
+			szHeader[nLength]='\0';
 			size_t nValueStart = nSplit+1;
 			while (nValueStart < nLength && szHeader[nValueStart] != ' ')
 				nValueStart++;
 			szName = szHeader;
 			szValue = &szHeader[nValueStart];
+		}
+		if (strcasecmp(szName,"Content-Length") == 0) {
+			m_nDataLeft = 0;
+			for (const char *i = szValue; i < &szHeader[nLength]; i++) {
+				m_nDataLeft *= 10;
+				if (*i >= '0' && *i <= '9')
+					m_nDataLeft += (*i)-'0';
+			}
+			DEBUG("Content-Length: %d %s", m_nDataLeft,szValue);
 		}
 		for (auto listener : m_sListeners)
 			listener->onHeader(this, szName, szValue);
