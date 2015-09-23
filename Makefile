@@ -12,7 +12,7 @@ OBJS:= cppcompat main \
 	output_protocols/ws2812 \
 	input_protocols/tpm2net \
 	input_protocols/artnet \
-	config/config config/IConfigRunner config/CConfigHtmlGenerator \
+	config/config config/IConfigRunner config/CConfigHtmlGenerator config/CConfigPostHandler \
 	httpd/CTcpServer httpd/CTcpSocket \
 	httpd/CHttpServer httpd/CHttpRequest \
 	debug/CDebugServer
@@ -88,7 +88,7 @@ $(OBJ_DIR)/firmware_stage2.elf: $(OBJ_DIR)/firmware_stage1.elf $(OBJ_DIR)/rename
 # Link in the other libraries
 # Also strip out all symbols not used by ESPTOOL, as some undefined symbols left may confuse it.
 $(OBJ_DIR)/firmware_stage3.elf: $(OBJ_DIR)/firmware_stage2.elf
-	$(CXX) -o $@ -nostdlib $(addprefix -L,$(LIBDIRS)) -Wl,--start-group $(addprefix -l,$(LIBS_NOFIXUP)) $^ -Wl,--end-group -Wl,-T$(LDSCRIPT)
+	$(CXX) -o $@ -nostdlib $(addprefix -L,$(LIBDIRS)) -Wl,--start-group $(addprefix -l,$(LIBS_NOFIXUP)) $^ -Wl,--end-group -Wl,-T$(LDSCRIPT) -Wl,--gc-sections
 	$(STRIP) -s $(addprefix -K,$(KEEPSYMS)) $@
 
 # Turn .elf file into .bin files ready for flashing

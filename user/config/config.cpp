@@ -15,6 +15,7 @@ extern "C" {
 #include "CConfigHtmlGenerator.h"
 #include <sstream>
 #include "httpd/CHttpServer.h"
+#include "config/CConfigPostHandler.h"
 
 class CConfigRunnerDefault : public IConfigRunner {
 	void optionBool(const char *szName, const char *szDescription, bool *pbValue, bool pbDefault) {
@@ -63,6 +64,10 @@ private:
 		std::string szUri = pRequest->getUri();
 		if (szUri.compare("/") == 0 || szUri.compare("/index.html")==0) {
 			CConfigHtmlGenerator::handle(pRequest);
+			return true;
+		}
+		if (szUri.compare("/submit.cgi") == 0) {
+			CConfigPostHandler::handle(pRequest);
 			return true;
 		}
 		return false;
