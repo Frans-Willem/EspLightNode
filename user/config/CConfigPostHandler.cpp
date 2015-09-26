@@ -1,14 +1,22 @@
 #include "CConfigPostHandler.h"
 #include <string.h>
 #include "debug/CDebugServer.h"
+#include "config/config.h"
+#include "CConfigWriter.h"
+#include "config/format.h"
 
 bool CConfigPostHandler::handle(CHttpRequest* pRequest) {
-	pRequest->addListener(new CConfigPostHandler(pRequest));
+	CConfigPostHandler *pHandler = new CConfigPostHandler(pRequest);
+	pRequest->addListener(static_cast<IHttpRequestListener *>(pHandler));
 	return true;
 }
 
 CConfigPostHandler::CConfigPostHandler(CHttpRequest* pRequest) {
 	m_pRequest=pRequest;	
+}
+
+CConfigPostHandler::~CConfigPostHandler() {
+
 }
 
 void CConfigPostHandler::onHeader(CHttpRequest *pRequest, const char *szName, const char *szValue) {
@@ -78,26 +86,19 @@ void CConfigPostHandler::onDataDone(CHttpRequest *pRequest) {
 	m_vBuffer.clear();
 	m_bHasKey = false;
 
-	std::vector<char> vData;
-	
-	//At this point m_mValues seems to be filled
-	for (auto kv : m_mValues) {
-		DEBUG("Key-value pair");
-		vData.insert(vData.end(), kv.first.begin(), kv.first.end());
-		vData.push_back(':');
-		vData.push_back(' ');
-		vData.insert(vData.end(), kv.second.begin(), kv.second.end());
-		vData.push_back('\r');
-		vData.push_back('\n');
-	}
-	vData.push_back('!');
-	
+
+	m_pWriter = new CConfigWriter(CONFIG_START_SECTOR, CONFIG_SECTOR_DIRECTION);
+	m_pWriter->writeBytes((const uint8_t *)CONFIG_HEADER,sizeof(CONFIG_HEADER)); // Header
+	config_run(this);
+	m_pWriter->writeUInt(ConfigSectionEnd);
+	m_pWriter->flush(true);
+	delete m_pWriter;
 
 	pRequest->startHeaders(200,"OK");
 	pRequest->sendHeader("Content-Type", "text/plain");
-	pRequest->sendHeader("Content-Length", vData.size());
+	pRequest->sendHeader("Content-Length", m_szOutput.length());
 	pRequest->endHeaders();
-	pRequest->sendData((const uint8_t *)&vData[0], vData.size());
+	pRequest->sendData((const uint8_t *)m_szOutput.c_str(), m_szOutput.length());
 }
 
 void CConfigPostHandler::onSent(CHttpRequest *pRequest) {
@@ -106,4 +107,69 @@ void CConfigPostHandler::onSent(CHttpRequest *pRequest) {
 
 void CConfigPostHandler::onDisconnected(CHttpRequest *pRequest) {
 	delete this;
+}
+
+std::string CConfigPostHandler::createOptionKey(const char *szName) {
+	std::string strRetval;
+	for (auto section : m_lSections) {
+		strRetval += section;
+		strRetval += ".";
+	}
+	strRetval+=szName;
+	return strRetval;
+}
+
+void CConfigPostHandler::beginModule(const char *szName, const char *szDescription) {
+	m_pWriter->writeUInt(ConfigSectionStart);
+	m_pWriter->writeString(szName);
+	m_lSections.push_back(szName);
+}
+
+void CConfigPostHandler::endModule() {
+	m_pWriter->writeUInt(ConfigSectionEnd);
+	if (!m_lSections.empty())
+		m_lSections.pop_back();
+}
+
+void CConfigPostHandler::optionBool(const char *szName, const char *szDescription, bool *pbValue, bool bDefault) {
+	const auto found = m_mValues.find(createOptionKey(szName));
+	bool bValue = (found != m_mValues.end() && found->second.compare("1") == 0);
+	if (bValue != bDefault) {
+		m_pWriter->writeUInt(ConfigInteger);
+		m_pWriter->writeString(szName);
+		m_pWriter->writeUInt(bValue?1:0);
+		m_szOutput += "Saved bool option ";
+		m_szOutput += createOptionKey(szName);
+		m_szOutput += "\r\n";
+	}
+}
+
+void CConfigPostHandler::optionString(const char *szName, const char *szDescription, char *szValue, size_t nSize, const char *szDefault) {
+	const auto found = m_mValues.find(createOptionKey(szName));
+	if (found != m_mValues.end() && found->second.compare(szDefault)!=0) {
+		std::string capped(found->second);
+		if (capped.length() + 1 > nSize)
+			capped=capped.substr(0,nSize-1);
+		m_pWriter->writeUInt(ConfigString);
+		m_pWriter->writeString(szName);
+		m_pWriter->writeString(capped.c_str());
+		m_szOutput += "Saved string option ";
+		m_szOutput += createOptionKey(szName);
+		m_szOutput += "\r\n";
+	}
+}
+
+void CConfigPostHandler::optionInt(const char *szName, const char *szDescription, void *pValue, size_t nSize, uint32_t nMin, uint32_t nMax, uint32_t nDefault) {
+	auto found = m_mValues.find(createOptionKey(szName));
+	if (found != m_mValues.end()) {
+		uint32_t nValue = atoi(found->second.c_str());
+		if (nValue != nDefault) {
+			m_pWriter->writeUInt(ConfigInteger);
+			m_pWriter->writeString(szName);
+			m_pWriter->writeUInt(nValue);
+			m_szOutput += "Saved int option ";
+			m_szOutput += createOptionKey(szName);
+			m_szOutput += "\r\n";
+		}
+	}
 }
