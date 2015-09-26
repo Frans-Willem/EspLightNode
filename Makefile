@@ -46,7 +46,7 @@ CXXLDFLAGS:= -nostdlib -Wl,--no-check-sections \
 # Library directories
 LIBDIRS:=$(SDK)/lib
 # Libraries that should be moved to the bigger flash section
-LIBS_FIXUP:= c gcc stdc++
+LIBS_FIXUP:= stdc++
 # Libraries that should stay at the smaller flash section
 # Double libraries could keep some parts in big flash, and some parts on smaller flash.
 LIBS_NOFIXUP:= c gcc main phy pp net80211 wpa lwip
