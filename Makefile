@@ -87,13 +87,16 @@ $(OBJ_DIR)/firmware_stage2.elf: $(OBJ_DIR)/firmware_stage1.elf $(OBJ_DIR)/rename
 	$(OBJCOPY) @$(word 2, $^) $< $@
 
 # Link in the other libraries
-# Also strip out all symbols not used by ESPTOOL, as some undefined symbols left may confuse it.
 $(OBJ_DIR)/firmware_stage3.elf: $(OBJ_DIR)/firmware_stage2.elf
 	$(CXX) -o $@ -nostdlib $(addprefix -L,$(LIBDIRS)) -Wl,--start-group $(addprefix -l,$(LIBS_NOFIXUP)) $^ -Wl,--end-group -Wl,-T$(LDSCRIPT) -Wl,--gc-sections
+
+# Strip out all symbols not used by ESPTOOL, as some undefined symbols left may confuse it.
+$(OBJ_DIR)/firmware_stage4.elf: $(OBJ_DIR)/firmware_stage3.elf
+	cp $^ $@
 	$(STRIP) -s $(addprefix -K,$(KEEPSYMS)) $@
 
 # Turn .elf file into .bin files ready for flashing
-$(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin): $(OBJ_DIR)/firmware_stage3.elf
+$(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin): $(OBJ_DIR)/firmware_stage4.elf
 	@mkdir -p $(OUTPUT_DIR)
 	$(ESPTOOL) elf2image --output $(OUTPUT_DIR)/ $^
 
