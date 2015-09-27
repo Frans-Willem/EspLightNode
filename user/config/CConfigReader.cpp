@@ -53,7 +53,8 @@ void CConfigReader::fillBuffer() {
 	if (!nSpace)
 		return;
 
-	spi_flash_read(m_nCurrentSector, (uint32_t *)&m_bBuffer[m_nBufferSize], nSpace);
+	spi_flash_read((m_nCurrentSector * SPI_FLASH_SEC_SIZE) + m_nOffset, (uint32_t *)&m_bBuffer[m_nBufferSize], nSpace);
+	m_nOffset += nSpace;
 	m_nBufferSize += nSpace;
 }
 
