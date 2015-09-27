@@ -87,8 +87,9 @@ void CConfigPostHandler::onDataDone(CHttpRequest *pRequest) {
 	m_bHasKey = false;
 
 
+	uint8_t pHeader[] = CONFIG_HEADER;
 	m_pWriter = new CConfigWriter(CONFIG_START_SECTOR, CONFIG_SECTOR_DIRECTION);
-	m_pWriter->writeBytes((const uint8_t *)CONFIG_HEADER,sizeof(CONFIG_HEADER)); // Header
+	m_pWriter->writeBytes(pHeader,sizeof(pHeader)); // Header
 	config_run(this);
 	m_pWriter->writeUInt(ConfigSectionEnd);
 	m_pWriter->flush(true);
