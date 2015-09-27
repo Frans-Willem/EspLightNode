@@ -56,3 +56,22 @@ void CConfigReader::fillBuffer() {
 	spi_flash_read(m_nCurrentSector, (uint32_t *)&m_bBuffer[m_nBufferSize], nSpace);
 	m_nBufferSize += nSpace;
 }
+
+unsigned int CConfigReader::readUInt() {
+	unsigned int nRetval = 0;
+	unsigned int nShift = 0;
+	uint8_t nBit;
+	do {
+		nBit = readByte();
+		nRetval |= (unsigned int)(nBit & 0x7F) << nShift;
+		nShift += 7;
+	} while (nBit & 0x80);
+	return nRetval;
+}
+
+std::string CConfigReader::readString() {
+	unsigned int nLength = readUInt();
+	std::string szRetval(nLength,' ');
+	readBytes((uint8_t *)szRetval.data(), nLength);
+	return szRetval;
+}
