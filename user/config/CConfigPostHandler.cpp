@@ -1,9 +1,13 @@
+#include <sdkfixup.h>
 #include "CConfigPostHandler.h"
 #include <string.h>
 #include "debug/CDebugServer.h"
 #include "config/config.h"
 #include "CConfigWriter.h"
 #include "config/format.h"
+extern "C" {
+#include <user_interface.h>
+}
 
 bool CConfigPostHandler::handle(CHttpRequest* pRequest) {
 	CConfigPostHandler *pHandler = new CConfigPostHandler(pRequest);
@@ -73,7 +77,6 @@ void CConfigPostHandler::onData(CHttpRequest *pRequest, const uint8_t *pData, si
 }
 
 void CConfigPostHandler::onDataDone(CHttpRequest *pRequest) {
-	DEBUG("onDataDone");
 	//Handle last bit of data
 	if (!m_bHasKey) {
 		m_szKey=std::string(m_vBuffer.begin(), m_vBuffer.end());
@@ -86,8 +89,14 @@ void CConfigPostHandler::onDataDone(CHttpRequest *pRequest) {
 	m_vBuffer.clear();
 	m_bHasKey = false;
 
+	// Start output
+	m_szOutput = "<html><head>";
+	m_szOutput += "<title>Saving...</title>";
+	m_szOutput += "<meta http-equiv=\"refresh\" content=\"3;url=/\" />";
+	m_szOutput += "</head><body>";
 
-	uint8_t pHeader[] = CONFIG_HEADER;
+	// Write out config
+	const uint8_t pHeader[] = CONFIG_HEADER;
 	m_pWriter = new CConfigWriter(CONFIG_START_SECTOR, CONFIG_SECTOR_DIRECTION);
 	m_pWriter->writeBytes(pHeader,sizeof(pHeader)); // Header
 	config_run(this);
@@ -95,9 +104,14 @@ void CConfigPostHandler::onDataDone(CHttpRequest *pRequest) {
 	m_pWriter->flush(true);
 	delete m_pWriter;
 
+	m_szOutput += "<p>Please wait for the unit to reboot...</p>";
+
+	m_szOutput += "</body></html>";
+
 	pRequest->startHeaders(200,"OK");
-	pRequest->sendHeader("Content-Type", "text/plain");
+	pRequest->sendHeader("Content-Type", "text/html");
 	pRequest->sendHeader("Content-Length", m_szOutput.length());
+	pRequest->sendHeader("Refresh","3;url=/");
 	pRequest->endHeaders();
 	pRequest->sendData((const uint8_t *)m_szOutput.c_str(), m_szOutput.length());
 }
@@ -108,6 +122,7 @@ void CConfigPostHandler::onSent(CHttpRequest *pRequest) {
 
 void CConfigPostHandler::onDisconnected(CHttpRequest *pRequest) {
 	delete this;
+	system_restart();
 }
 
 std::string CConfigPostHandler::createOptionKey(const char *szName) {
@@ -139,9 +154,6 @@ void CConfigPostHandler::optionBool(const char *szName, const char *szDescriptio
 		m_pWriter->writeUInt(ConfigInteger);
 		m_pWriter->writeString(szName);
 		m_pWriter->writeUInt(bValue?1:0);
-		m_szOutput += "Saved bool option ";
-		m_szOutput += createOptionKey(szName);
-		m_szOutput += "\r\n";
 	}
 }
 
@@ -154,9 +166,6 @@ void CConfigPostHandler::optionString(const char *szName, const char *szDescript
 		m_pWriter->writeUInt(ConfigString);
 		m_pWriter->writeString(szName);
 		m_pWriter->writeString(capped.c_str());
-		m_szOutput += "Saved string option ";
-		m_szOutput += createOptionKey(szName);
-		m_szOutput += "\r\n";
 	}
 }
 
@@ -168,9 +177,6 @@ void CConfigPostHandler::optionInt(const char *szName, const char *szDescription
 			m_pWriter->writeUInt(ConfigInteger);
 			m_pWriter->writeString(szName);
 			m_pWriter->writeUInt(nValue);
-			m_szOutput += "Saved int option ";
-			m_szOutput += createOptionKey(szName);
-			m_szOutput += "\r\n";
 		}
 	}
 }
