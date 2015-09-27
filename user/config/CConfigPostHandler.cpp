@@ -173,6 +173,10 @@ void CConfigPostHandler::optionInt(const char *szName, const char *szDescription
 	auto found = m_mValues.find(createOptionKey(szName));
 	if (found != m_mValues.end()) {
 		uint32_t nValue = atoi(found->second.c_str());
+		if (nValue < nMin)
+			nValue = nMin;
+		if (nValue > nMax)
+			nValue = nMax;
 		if (nValue != nDefault) {
 			m_pWriter->writeUInt(ConfigInteger);
 			m_pWriter->writeString(szName);
