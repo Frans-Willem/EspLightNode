@@ -13,7 +13,7 @@ OBJS:= cppcompat main \
 	input_protocols/tpm2net \
 	input_protocols/artnet \
 	config/config config/IConfigRunner config/CConfigHtmlGenerator config/CConfigPostHandler \
-	config/CConfigWriter config/CConfigReader config/CConfigSection \
+	config/CConfigWriter config/CConfigReader config/CConfigSection config/CConfigLoader \
 	httpd/CTcpServer httpd/CTcpSocket \
 	httpd/CHttpServer httpd/CHttpRequest \
 	debug/CDebugServer
