@@ -19,7 +19,7 @@ private:
 	unsigned int	m_nCurrentSector;	//Current sector
 	int		m_nDirection;		//Which direction to continue after this sector is done
 	unsigned int	m_nOffset;		//Offset in current sector
-	uint8_t		m_bBuffer[256];
+	uint8_t		m_bBuffer[64];
 	size_t		m_nBufferFilled;
 };
 #endif//CONFIG_CCONFIGWRITER_H
