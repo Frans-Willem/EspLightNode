@@ -184,3 +184,19 @@ void CConfigPostHandler::optionInt(const char *szName, const char *szDescription
 		}
 	}
 }
+void CConfigPostHandler::optionSelectBegin(const char *szName, const char *szDescription, unsigned int* pnValue, unsigned int nDefault) {
+	auto found = m_mValues.find(createOptionKey(szName));
+	if (found != m_mValues.end()) {
+		unsigned int nValue = atoi(found->second.c_str());
+		if (nValue != nDefault) {
+			m_pWriter->writeUInt(ConfigInteger);
+			m_pWriter->writeString(szName);
+			m_pWriter->writeUInt(nValue);
+		}
+	}
+}
+void CConfigPostHandler::optionSelectItem(const char *szName, unsigned int nValue) {
+
+}
+void CConfigPostHandler::optionSelectEnd() {
+}

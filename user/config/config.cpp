@@ -20,10 +20,12 @@ extern "C" {
 
 DEFINE_CONFIG(artnet);
 DEFINE_CONFIG(tpm2net);
+DEFINE_CONFIG(wifi);
 
-void config_run(IConfigRunner *runner) {
-	artnet_runconfig(runner);
-	tpm2net_runconfig(runner);
+void config_run(IConfigRunner *_configrunner) {
+	CONFIG_SUB(artnet);
+	CONFIG_SUB(tpm2net);
+	CONFIG_SUB(wifi);
 }
 
 void config_load() {

@@ -13,3 +13,9 @@ void IConfigRunner::optionString(const char *szName, const char *szDescription, 
 }
 void IConfigRunner::optionInt(const char *szName, const char *szDescription, void *pValue, size_t nSize, uint32_t nMin, uint32_t nMax, uint32_t nDefault) {
 }
+void IConfigRunner::optionSelectBegin(const char *szName, const char *szDescription, unsigned int* pnValue, unsigned int nDefault) {
+}
+void IConfigRunner::optionSelectItem(const char *szName, unsigned int nValue) {
+}
+void IConfigRunner::optionSelectEnd() {
+}

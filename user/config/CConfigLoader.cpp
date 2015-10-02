@@ -69,3 +69,13 @@ void CConfigLoader::optionInt(const char *szName, const char *szDescription, voi
 		case 4: (*(uint32_t*)pValue) = nValue; break;
 	}
 }
+void CConfigLoader::optionSelectBegin(const char *szName, const char *szDescription, unsigned int* pnValue, unsigned int nDefault) {
+	unsigned int nValue;
+	if (m_lSectionStack.empty() || !m_lSectionStack.back() || !m_lSectionStack.back()->getUInt(szName, nValue))
+		nValue = nDefault;
+	*pnValue = nValue;
+}
+void CConfigLoader::optionSelectItem(const char *szName, unsigned int nValue) {
+}
+void CConfigLoader::optionSelectEnd() {
+}

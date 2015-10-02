@@ -61,6 +61,29 @@ void CConfigHtmlGenerator::optionInt(const char *szName, const char *szDescripti
 	write(szTemp);
 	write("\"></input><br />");
 }
+void CConfigHtmlGenerator::optionSelectBegin(const char *szName, const char *szDescription, unsigned int* pnValue, unsigned int nDefault) {
+	write(szDescription);
+	write(": <select name=\"");
+	write_fieldprefix();
+	write(szName);
+	write("\">");
+	m_nCurrentSelectItem = *pnValue;
+}
+void CConfigHtmlGenerator::optionSelectItem(const char *szName, unsigned int nValue) {
+	char szTemp[32];
+	write("<option value=\"");
+	os_sprintf(szTemp, "%u", nValue);
+	write(szTemp);
+	if (nValue == m_nCurrentSelectItem)
+		write("\" selected>");
+	else
+		write("\">");
+	write(szName);
+	write("</option>");
+}
+void CConfigHtmlGenerator::optionSelectEnd() {
+	write("</select><br />");
+}
 void CConfigHtmlGenerator::onHeader(CHttpRequest *pRequest, const char *szName, const char *szValue) {
 }
 void CConfigHtmlGenerator::onHeadersDone(CHttpRequest *pRequest, size_t nDataLength) {
