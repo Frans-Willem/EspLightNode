@@ -74,8 +74,16 @@ void CConfigLoader::optionSelectBegin(const char *szName, const char *szDescript
 	if (m_lSectionStack.empty() || !m_lSectionStack.back() || !m_lSectionStack.back()->getUInt(szName, nValue))
 		nValue = nDefault;
 	*pnValue = nValue;
+
+	m_pnSelectValue = pnValue;
+	m_nDefaultSelectValue = nDefault;
+	m_bValidSelectValue = false;
 }
 void CConfigLoader::optionSelectItem(const char *szName, unsigned int nValue) {
+	if (nValue == *m_pnSelectValue)
+		m_bValidSelectValue = true;
 }
 void CConfigLoader::optionSelectEnd() {
+	if (!m_bValidSelectValue)
+		*m_pnSelectValue = m_nDefaultSelectValue;
 }

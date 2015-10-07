@@ -18,5 +18,8 @@ private:
 	void optionSelectEnd();
 
 	std::list<CConfigSection*> m_lSectionStack;	
+	unsigned int* m_pnSelectValue;
+	unsigned int m_nDefaultSelectValue;
+	bool m_bValidSelectValue;
 };
 #endif//CONFIG_CCONFIGLOADER_H
