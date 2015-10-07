@@ -72,7 +72,7 @@ static void ICACHE_FLASH_ATTR wait_for_ip(uint8 flag) {
     } else { //STATION_NO_AP_FOUND||STATION_CONNECT_FAIL||STATION_WRONG_PASSWORD
     	//Connection failed, somehow :(
         //system_restart();
-        //Bring up SOFTAP here
+        //TODO: Bring up SOFTAP here
     }
 }
 
