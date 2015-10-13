@@ -87,3 +87,8 @@ void CConfigLoader::optionSelectEnd() {
 	if (!m_bValidSelectValue)
 		*m_pnSelectValue = m_nDefaultSelectValue;
 }
+void CConfigLoader::optionIpAddress(const char *szName, const char *szDescription, uint32_t *pAddress, uint32_t nDefault) {
+	if (m_lSectionStack.empty() || !m_lSectionStack.back() || !m_lSectionStack.back()->getUInt(szName, *pAddress))
+		*pAddress = nDefault;
+}
+

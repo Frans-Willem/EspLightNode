@@ -84,6 +84,26 @@ void CConfigHtmlGenerator::optionSelectItem(const char *szName, unsigned int nVa
 void CConfigHtmlGenerator::optionSelectEnd() {
 	write("</select><br />");
 }
+void CConfigHtmlGenerator::optionIpAddress(const char *szName, const char *szDescription, uint32_t *pAddress, uint32_t nDefault) {
+	char szTemp[32];
+	write(szDescription);
+	write(": ");
+	for (unsigned int i=0; i<4; i++) {
+		if (i != 0)
+			write(".");
+		write("<input type=\"text\" size=\"3\" name=\"");
+		write_fieldprefix();
+		write(szName);
+		write("[");
+		os_sprintf(szTemp,"%u", i);
+		write(szTemp);
+		write("]\" value=\"");
+		os_sprintf(szTemp,"%u",(*pAddress >> (i*8)) & 0xFF);
+		write(szTemp);
+		write("\"></input>");
+	}
+	write("<br />");
+}
 void CConfigHtmlGenerator::onHeader(CHttpRequest *pRequest, const char *szName, const char *szValue) {
 }
 void CConfigHtmlGenerator::onHeadersDone(CHttpRequest *pRequest, size_t nDataLength) {

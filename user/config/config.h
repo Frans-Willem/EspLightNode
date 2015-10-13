@@ -27,5 +27,6 @@ void config_init(CHttpServer *pServer);
 #define CONFIG_SELECTSTART(name, description, address, defvalue) _configrunner->optionSelectBegin(name, description, address, defvalue)
 #define CONFIG_SELECTOPTION(name, value) _configrunner->optionSelectItem(name, value)
 #define CONFIG_SELECTEND() _configrunner->optionSelectEnd()
+#define CONFIG_IP(name, description, address, a, b, c, d) _configrunner->optionIpAddress(name,description,address,a | (b << 8) | (c << 16) | (d << 24))
 
 #endif /* CONFIG_CONFIG_H_ */

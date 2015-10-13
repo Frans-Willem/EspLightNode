@@ -19,3 +19,5 @@ void IConfigRunner::optionSelectItem(const char *szName, unsigned int nValue) {
 }
 void IConfigRunner::optionSelectEnd() {
 }
+void IConfigRunner::optionIpAddress(const char *szName, const char *szDescription, uint32_t* pAddress, uint32_t nDefault) {
+}

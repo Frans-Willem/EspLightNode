@@ -200,3 +200,19 @@ void CConfigPostHandler::optionSelectItem(const char *szName, unsigned int nValu
 }
 void CConfigPostHandler::optionSelectEnd() {
 }
+void CConfigPostHandler::optionIpAddress(const char *szName, const char *szDescription, uint32_t *pAddress, uint32_t nDefault) {
+	std::string szBaseKey(createOptionKey(szName));
+	char szSuffix[]="[0]";
+	uint32_t nValue = 0;
+	for (unsigned int i=0; i<4; i++) {
+		szSuffix[1] = '0' + i;
+		auto found = m_mValues.find(szBaseKey + szSuffix);
+		if (found != m_mValues.end())
+			nValue |= ((unsigned int)atoi(found->second.c_str()) & 0xFF) << (i*8);
+	}
+	if (nValue != nDefault) {
+		m_pWriter->writeUInt(ConfigInteger);
+		m_pWriter->writeString(szName);
+		m_pWriter->writeUInt(nValue);
+	}
+}

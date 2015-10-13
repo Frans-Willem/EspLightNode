@@ -16,6 +16,7 @@ private:
 	void optionSelectBegin(const char *szName, const char *szDescription, unsigned int* pnValue, unsigned int nDefault);
 	void optionSelectItem(const char *szName, unsigned int nValue);
 	void optionSelectEnd();
+	void optionIpAddress(const char *szName, const char *szDescription, uint32_t *pAddress, uint32_t nDefault);
 
 	std::list<CConfigSection*> m_lSectionStack;	
 	unsigned int* m_pnSelectValue;

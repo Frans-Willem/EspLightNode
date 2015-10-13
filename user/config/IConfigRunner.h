@@ -13,5 +13,6 @@ class IConfigRunner {
 		virtual void optionSelectBegin(const char *szName, const char *szDescription, unsigned int* pnValue, unsigned int nDefault);
 		virtual void optionSelectItem(const char *szName, unsigned int nValue);
 		virtual void optionSelectEnd();
+		virtual void optionIpAddress(const char *szName, const char *szDescription, uint32_t* pAddress, uint32_t nDefault);
 };
 #endif//ICONFIGRUNNER_H
