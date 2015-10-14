@@ -29,6 +29,7 @@ unsigned int nWifiMode;
 char szWifiSsid[32];
 char szWifiPassword[64];
 bool bUseDhcp;
+char szHostname[64];
 uint32_t aIP;
 uint32_t aNetmask;
 uint32_t aGateway;
@@ -41,6 +42,7 @@ CONFIG_SELECTEND();
 CONFIG_STRING("ssid", "SSID", szWifiSsid, sizeof(szWifiSsid)-1, "EspLightNode");
 CONFIG_STRING("password","Password", szWifiPassword, sizeof(szWifiPassword)-1,"");
 CONFIG_BOOLEAN("dhcp","Automatic configuration (DHCP)", &bUseDhcp, true);
+CONFIG_STRING("hostname", "Hostname", szHostname, sizeof(szHostname)-1,"EspLightNode");
 CONFIG_IP("ip","IP Address", &aIP, 192, 168, 1, 1);
 CONFIG_IP("netmask","Netmask", &aNetmask, 255, 255, 255, 0);
 CONFIG_IP("gateway","Gateway", &aGateway, 192, 168, 1, 1);
@@ -143,10 +145,11 @@ user_init()
 	ipinfo.gw.addr = aGateway;
 
 	if (nWifiMode == STATION_MODE) {
+		wifi_station_dhcpc_stop();
+		wifi_station_set_hostname(szHostname);
 		if (bUseDhcp) {
 			wifi_station_dhcpc_start();
 		} else {
-			wifi_station_dhcpc_stop();
 			wifi_set_ip_info(STATION_IF, &ipinfo);
 		}
 	} else {
