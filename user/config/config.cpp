@@ -22,12 +22,14 @@ DEFINE_CONFIG(artnet);
 DEFINE_CONFIG(tpm2net);
 DEFINE_CONFIG(wifi);
 DEFINE_CONFIG(network);
+DEFINE_CONFIG(output);
 
 void config_run(IConfigRunner *_configrunner) {
-	CONFIG_SUB(artnet);
-	CONFIG_SUB(tpm2net);
 	CONFIG_SUB(wifi);
 	CONFIG_SUB(network);
+	CONFIG_SUB(output);
+	CONFIG_SUB(artnet);
+	CONFIG_SUB(tpm2net);
 }
 
 void config_load() {
