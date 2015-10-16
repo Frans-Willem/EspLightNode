@@ -7,7 +7,7 @@ OUTPUT_DIR:=firmware
 
 
 # Object files
-OBJS:= cppcompat main \
+OBJS:= cppcompat main wifisetup \
 	output_protocols/ws2801 \
 	output_protocols/ws2812 \
 	input_protocols/tpm2net \

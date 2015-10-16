@@ -21,11 +21,13 @@ extern "C" {
 DEFINE_CONFIG(artnet);
 DEFINE_CONFIG(tpm2net);
 DEFINE_CONFIG(wifi);
+DEFINE_CONFIG(network);
 
 void config_run(IConfigRunner *_configrunner) {
 	CONFIG_SUB(artnet);
 	CONFIG_SUB(tpm2net);
 	CONFIG_SUB(wifi);
+	CONFIG_SUB(network);
 }
 
 void config_load() {
