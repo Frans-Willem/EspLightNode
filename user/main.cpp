@@ -15,9 +15,6 @@ extern "C" {
 #include "espconn.h"
 #include "mem.h"
 }
-#include "input_protocols/tpm2net.h"
-#include "output_protocols/ws2801.h"
-#include "output_protocols/ws2812.h"
 #include "input_protocols/artnet.h"
 #include "input_protocols/tpm2net.h"
 #include "config/config.h"
@@ -25,6 +22,7 @@ extern "C" {
 #include "httpd/CHttpServer.h"
 #include <string.h>
 #include "wifisetup.h"
+#include "output_protocols/output.h"
 
 
 void start_services() {
@@ -81,12 +79,8 @@ user_init()
 	wifi_setup_defaults();
 	config_load();
 	wifi_init();
+	output_init();
 
-#ifdef ENABLE_WS2812
-	ws2812_init();
-#else
-	ws2801_init();
-#endif
     //Wait for system to be done.
     system_init_done_cb(&system_is_done);
     //system_os_task()
