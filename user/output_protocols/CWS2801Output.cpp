@@ -6,9 +6,10 @@
  */
 #include <sdkfixup.h>
 extern "C" {
-	#include <c_types.h>
-	#include <eagle_soc.h>
-	#include <gpio.h>
+#include <c_types.h>
+#include <eagle_soc.h>
+#include <gpio.h>
+#include <ets_sys.h>
 }
 #include "CWS2801Output.h"
 #include "debug/CDebugServer.h"
@@ -75,13 +76,17 @@ CWS2801Output::~CWS2801Output() {
 
 void CWS2801Output::output(const uint8_t *pData) {
 	unsigned int nTotalLength = m_nLength * 3;
+	ets_intr_lock();
 	for (unsigned int i=0; i<nTotalLength; i++) {
 		for (uint8_t bitmask=0x80; bitmask!=0; bitmask>>=1) {
 			if (pData[i] & bitmask) GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, m_nDataBit);
 			else GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, m_nDataBit);
+			__asm("nop");
 			GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, m_nClockBit);
+			__asm("nop");
 			GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, m_nClockBit);
 		}
 	}
-	GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, m_nDataBit);
+	GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, m_nClockBit|m_nDataBit);
+	ets_intr_unlock();
 }
