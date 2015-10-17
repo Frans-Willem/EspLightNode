@@ -105,6 +105,14 @@ $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin): $(OBJ_DIR)/firmware_stage4.elf
 flash: $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin)
 	$(ESPTOOL) --port $(PORT) --baud 460800 write_flash $(foreach x,$(FW_OFFSETS),$(x) $(OUTPUT_DIR)/$(x).bin)
 
+$(OUTPUT_DIR)/blank.bin:
+	@mkdir -p $(OUTPUT_DIR)
+	tr '\0' '\377' < /dev/zero | dd of=$@ bs=4096 count=1
+
+clearconfig: $(OUTPUT_DIR)/blank.bin $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin)
+	# Write all firmware, as writing just a blank sector also erases the one after it somehow.
+	$(ESPTOOL) --port $(PORT) --baud 460800 write_flash `echo $$((63 * 4096))` $< $(foreach x,$(FW_OFFSETS),$(x) $(OUTPUT_DIR)/$(x).bin)
+
 clean:
 	rm -rf $(OBJ_DIR)
 	rm -rf $(OUTPUT_DIR)
