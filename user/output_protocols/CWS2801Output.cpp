@@ -56,12 +56,8 @@ END_CONFIG();
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wparentheses"
 CWS2801Output::CWS2801Output(unsigned int nLength) : COutput(nLength) {
-	/*
 	PIN_FUNC_SELECT(gpioInfo[g_nDataPin].nMuxReg, gpioInfo[g_nDataPin].nMuxVal);
 	PIN_FUNC_SELECT(gpioInfo[g_nClockPin].nMuxReg, gpioInfo[g_nClockPin].nMuxVal);
-	*/
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
 
 	m_nDataBit = gpioInfo[g_nDataPin].nBit;
 	m_nClockBit = gpioInfo[g_nClockPin].nBit;
