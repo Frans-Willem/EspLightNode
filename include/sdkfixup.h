@@ -43,6 +43,9 @@ extern "C" {
 	void ets_timer_disarm(os_timer_t *);
 	void ets_timer_arm_new(os_timer_t *, uint32_t, bool, int);
 	void ets_timer_setfn(os_timer_t *, os_timer_func_t *, void *);
+	void ets_isr_attach(int intr, void *handler, void *arg);
+	void ets_isr_mask(unsigned intr);
+	void ets_isr_unmask(unsigned intr);
 }
 
 extern "C" {
