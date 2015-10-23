@@ -9,7 +9,11 @@ OUTPUT_DIR:=firmware
 # Object files
 OBJS:= cppcompat main wifisetup \
 	output_protocols/output output_protocols/COutput \
+	output_protocols/ISPIInterface \
+	output_protocols/CSPIBitbang \
+	output_protocols/CSPIHardware \
 	output_protocols/CWS2801Output \
+	output_protocols/CWS2801HSPIOutput \
 	output_protocols/ws2812 \
 	input_protocols/tpm2net \
 	input_protocols/artnet \
@@ -84,8 +88,8 @@ $(OBJ_DIR)/rename-sections.txt: $(OBJ_DIR)/function-sections.txt $(OBJ_DIR)/lite
 	cat $^ | awk '{print "--rename-section " $$0 "=.irom0.text"}' > $@
 
 # Apply the mass section renaming.
-$(OBJ_DIR)/firmware_stage2.elf: $(OBJ_DIR)/firmware_stage1.elf $(OBJ_DIR)/rename-sections.txt
-	$(OBJCOPY) @$(word 2, $^) $< $@
+$(OBJ_DIR)/firmware_stage2.elf: $(OBJ_DIR)/firmware_stage1.elf $(OBJ_DIR)/rename-sections.txt static-rename-sections.txt
+	$(OBJCOPY) @$(word 2, $^) @$(word 3, $^) $< $@
 
 # Link in the other libraries
 $(OBJ_DIR)/firmware_stage3.elf: $(OBJ_DIR)/firmware_stage2.elf
