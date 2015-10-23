@@ -13,6 +13,8 @@ OBJS:= cppcompat main wifisetup \
 	output_protocols/CSPIBitbang \
 	output_protocols/CSPIHardware \
 	output_protocols/CWS2801Output \
+	output_protocols/C3WireOutput \
+	output_protocols/C3WireEncoder \
 	output_protocols/ws2812 \
 	input_protocols/tpm2net \
 	input_protocols/artnet \

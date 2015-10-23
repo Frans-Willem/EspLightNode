@@ -1,0 +1,3 @@
+#include "C3WireEncoder.h"
+
+//Nothing here...
