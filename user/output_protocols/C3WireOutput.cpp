@@ -151,7 +151,6 @@ void C3WireOutput::output(const uint8_t *pData) {
 	// I suspect we have to wait for the SLC to actually be stopped before messing with the registers
 	// The "encode" but is hopefully enough space for now.
 	size_t nOutputLength = m_pEncoder->encode(pData, m_nLength*3, m_pBuffer);
-	DEBUG("Output: in %d out %d", m_nLength*3, nOutputLength);
 	// Ideally I'd like to adjust the buffer length,
 	// but that will creep out the SLC when it's not properly stopped.
 	// So assume that the rest of the buffer is 0 anyway.
