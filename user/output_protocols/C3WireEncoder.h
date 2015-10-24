@@ -36,12 +36,12 @@ class C3WireEncoder : public I3WireEncoder {
 						nBitLength = len0;
 						nBitValue = ((1 << num0)-1) << (len0-num0);
 					}
-					if (nBitLength < nBitsLeft) {
+					if (nBitLength <= nBitsLeft) {
 						nBitsLeft -= nBitLength;
 						*pOutput |= nBitValue << nBitsLeft;
 					} else {
+						*pOutput |= nBitValue >> (nBitLength - nBitsLeft);
 						nBitsLeft += 32 - nBitLength;
-						*pOutput |= nBitValue >> (32 - nBitsLeft);
 						pOutput++;
 						nEncoded++;
 						*pOutput |= nBitValue << nBitsLeft;
