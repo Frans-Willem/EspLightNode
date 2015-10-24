@@ -42,10 +42,10 @@ void output_init() {
 			pOutput = new CWS2801Output(nOutputLength, new CSPIHardware());
 			break;
 		case Output_WS281X_800:
-			pOutput = new C3WireOutput(nOutputLength, 5, 10, new C3WireEncoder<4,4,1,2>());
+			pOutput = new C3WireOutput(nOutputLength, 10, 5, new C3WireEncoder<4,4,1,2>());
 			break;
 		case Output_WS281X_400:
-			pOutput = new C3WireOutput(nOutputLength, 5, 5, new C3WireEncoder<4,4,1,2>());
+			pOutput = new C3WireOutput(nOutputLength, 10, 10, new C3WireEncoder<4,4,1,2>());
 			break;
 		default:
 			pOutput = new COutput(nOutputLength);
