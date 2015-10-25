@@ -44,11 +44,8 @@ static void ICACHE_FLASH_ATTR artnet_recv_opoutput(unsigned char *packet, unsign
 			uint8_t Net = packet[5];
 			if (Net == artnet_net && (SubUni >> 4) == artnet_subnet && (SubUni & 0xF) == artnet_universe) {
 				uint16_t Length = ((uint16_t)packet[6] << 8) | packet[7];
-				if (packetlen >= 8 + Length) {
-					uint8_t *data = &packet[8];
-					// TODO: Check length, possibly pad
-					output_get()->output(data);
-				}
+				if (packetlen >= 8 + Length)
+					output(&packet[8], Length);
 			} else {
 				//Not intended for us...
 			}

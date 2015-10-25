@@ -1,7 +1,8 @@
 #ifndef OUTPUT_PROTOCOLS_OUTPUT_H
 #define OUTPUT_PROTOCOLS_OUTPUT_H
-class COutput;
+#include <stdint.h>
+#include <stddef.h>
 
 void output_init();
-COutput *output_get();
+void output(const uint8_t *pData, size_t nLength);
 #endif//OUTPUT_PROTOCOLS_OUTPUT_H

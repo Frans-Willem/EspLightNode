@@ -18,14 +18,14 @@ extern "C" {
 
 bool tpm2net_enabled;
 uint16_t framebuffer_len = 0;
-unsigned char framebuffer[1536]; //max 512 rgb pixels
+uint8_t framebuffer[1536]; //max 512 rgb pixels
 
 BEGIN_CONFIG(tpm2net,"TPM2.net");
 	CONFIG_BOOLEAN("enabled","Enabled",&tpm2net_enabled, 1);
 END_CONFIG();
 
 static void ICACHE_FLASH_ATTR tpm2net_recv(void *arg, char *pusrdata, unsigned short length) {
-    unsigned char *data =(unsigned char *)pusrdata; //pointer to espconn's returned data
+    uint8_t *data =(uint8_t *)pusrdata; //pointer to espconn's returned data
     if (data && length >= 6 && data[0]==0x9C) { // header identifier (packet start)
         uint8_t blocktype = data[1]; // block type
         uint16_t framelength = ((uint16_t)data[2] << 8) | (uint16_t)data[3]; // frame length
@@ -34,14 +34,12 @@ static void ICACHE_FLASH_ATTR tpm2net_recv(void *arg, char *pusrdata, unsigned s
         if (blocktype == 0xDA) { // data command ...
             if (length >= framelength + 7 && data[6+framelength]==0x36) { // header end (packet stop)
                 if (numpackages == 0x01) { // no frame split found
-                    unsigned char *frame = &data[6]; // pointer 'frame' to espconn's data (start of data)
-					output_get()->output(frame);
+					output(&data[6], framelength);
                 } else { //frame split is found
                     os_memcpy (&framebuffer[framebuffer_len], &data[6], framelength);
                     framebuffer_len += framelength;
                     if (packagenum == numpackages) { // all packets found 
-                        unsigned char *frame = &framebuffer[0]; // pointer 'frame' framebuffer
-						output_get()->output(frame);
+						output(framebuffer, framebuffer_len);
                         framebuffer_len = 0;
                     }
                 }

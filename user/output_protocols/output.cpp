@@ -56,3 +56,7 @@ void output_init() {
 COutput* output_get() {
 	return pOutput;
 }
+
+void output(const uint8_t *pData, size_t nLength) {
+	pOutput->output(pData);
+}	
