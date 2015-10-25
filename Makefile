@@ -4,6 +4,7 @@ PORT:=/dev/ttyUSB0
 OBJ_DIR:=objs
 SRC_DIR:=user
 OUTPUT_DIR:=firmware
+RELEASE_DIR:=release
 
 
 # Object files
@@ -121,4 +122,17 @@ clearconfig: $(OUTPUT_DIR)/blank.bin $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin)
 clean:
 	rm -rf $(OBJ_DIR)
 	rm -rf $(OUTPUT_DIR)
+	rm -rf $(RELEASE_DIR)
 
+.PHONY: release
+release: $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin) $(OUTPUT_DIR)/blank.bin LICENSE distri/README.txt
+	$(eval $@_TMP := $(shell mktemp -d))
+	mkdir $($@_TMP)/firmware
+	mkdir $($@_TMP)/documentation
+	cp LICENSE $($@_TMP)
+	cp distri/README.txt$($@_TMP)
+	cp $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin) $($@_TMP)/firmware
+	cp $(OUTDIR_DIR/blank.bin $($@_TMP)/firmware
+	@mkdir -p $(RELEASE_DIR)
+	cd $($@_TMP); zip -r "$(realpath $(RELEASE_DIR))/EspLightNode-$(shell date +%F-%H%S).zip" .
+	rm -r $($@_TMP)
