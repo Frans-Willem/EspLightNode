@@ -127,13 +127,15 @@ clean:
 .PHONY: release
 release: $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin) $(OUTPUT_DIR)/blank.bin LICENSE distri/README.txt
 	$(eval $@_TMP := $(shell mktemp -d))
+	$(eval $@_TARGET := EspLightNode-$(shell git describe --dirty)-$(shell date +%F).zip)
 	mkdir $($@_TMP)/firmware
 	mkdir $($@_TMP)/documentation
 	cp LICENSE $($@_TMP)
 	cp distri/README.txt $($@_TMP)
 	cp $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin) $($@_TMP)/firmware
 	cp $(OUTPUT_DIR)/blank.bin $($@_TMP)/firmware
-	git describe > $($@_TMP)/VERSION.txt
+	git describe --dirty > $($@_TMP)/VERSION.txt
 	@mkdir -p $(RELEASE_DIR)
-	cd $($@_TMP); zip -r "$(realpath $(RELEASE_DIR))/EspLightNode-$(shell date +%F-%H%S).zip" .
+	rm -f $(RELEASE_DIR)/$($@_TARGET)
+	cd $($@_TMP); zip -r "$(abspath $(RELEASE_DIR))/$($@_TARGET)" .
 	rm -r $($@_TMP)
