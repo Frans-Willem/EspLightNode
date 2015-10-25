@@ -130,9 +130,10 @@ release: $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin) $(OUTPUT_DIR)/blank.bin LICENSE dis
 	mkdir $($@_TMP)/firmware
 	mkdir $($@_TMP)/documentation
 	cp LICENSE $($@_TMP)
-	cp distri/README.txt$($@_TMP)
+	cp distri/README.txt $($@_TMP)
 	cp $(FW_OFFSETS:%=$(OUTPUT_DIR)/%.bin) $($@_TMP)/firmware
-	cp $(OUTDIR_DIR/blank.bin $($@_TMP)/firmware
+	cp $(OUTPUT_DIR)/blank.bin $($@_TMP)/firmware
+	git describe > $($@_TMP)/VERSION.txt
 	@mkdir -p $(RELEASE_DIR)
 	cd $($@_TMP); zip -r "$(realpath $(RELEASE_DIR))/EspLightNode-$(shell date +%F-%H%S).zip" .
 	rm -r $($@_TMP)
