@@ -20,7 +20,7 @@ bool tpm2net_enabled;
 uint16_t framebuffer_len = 0;
 uint8_t framebuffer[1536]; //max 512 rgb pixels
 
-BEGIN_CONFIG(tpm2net,"TPM2.net");
+BEGIN_CONFIG(tpm2net,"tpm2","TPM2.net");
 	CONFIG_BOOLEAN("enabled","Enabled",&tpm2net_enabled, 1);
 END_CONFIG();
 
@@ -34,12 +34,12 @@ static void ICACHE_FLASH_ATTR tpm2net_recv(void *arg, char *pusrdata, unsigned s
         if (blocktype == 0xDA) { // data command ...
             if (length >= framelength + 7 && data[6+framelength]==0x36) { // header end (packet stop)
                 if (numpackages == 0x01) { // no frame split found
-					output(&data[6], framelength);
+					Output::output(&data[6], framelength);
                 } else { //frame split is found
                     os_memcpy (&framebuffer[framebuffer_len], &data[6], framelength);
                     framebuffer_len += framelength;
                     if (packagenum == numpackages) { // all packets found 
-						output(framebuffer, framebuffer_len);
+						Output::output(framebuffer, framebuffer_len);
                         framebuffer_len = 0;
                     }
                 }

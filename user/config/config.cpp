@@ -17,17 +17,17 @@ extern "C" {
 #include "httpd/CHttpServer.h"
 #include "config/CConfigPostHandler.h"
 #include "config/CConfigLoader.h"
+#include "output_protocols/output.h"
 
 DEFINE_CONFIG(artnet);
 DEFINE_CONFIG(tpm2net);
 DEFINE_CONFIG(wifi);
 DEFINE_CONFIG(network);
-DEFINE_CONFIG(output);
 
 void config_run(IConfigRunner *_configrunner) {
 	CONFIG_SUB(wifi);
 	CONFIG_SUB(network);
-	CONFIG_SUB(output);
+	CONFIG_SUB(Output::config);
 	CONFIG_SUB(artnet);
 	CONFIG_SUB(tpm2net);
 }

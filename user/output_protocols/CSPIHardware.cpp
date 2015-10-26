@@ -13,7 +13,7 @@ extern "C" {
 unsigned int CSPIHardware::g_nClockDiv = 0;
 bool CSPIHardware::g_bUseInterrupts = true;
 
-BEGIN_CONFIG(CSPIHardware::config,"HSPI configuration");
+BEGIN_CONFIG(CSPIHardware::config,"hspi", "HSPI configuration");
 CONFIG_SELECTSTART("clockdiv","Speed",&g_nClockDiv,0);
 CONFIG_SELECTOPTION("40mhz", 0); //80/(0+1)
 CONFIG_SELECTOPTION("20mhz", 1); //80/(1+1)

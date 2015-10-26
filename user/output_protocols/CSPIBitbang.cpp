@@ -32,7 +32,7 @@ GpioInfo gpioInfo[] = {
 	{"GPIO15/D1/MTDO/I2SO BCK/HSPI CS/U0RTS", BIT15, PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15}
 };
 
-BEGIN_CONFIG(CSPIBitbang::config, "SPI Bitbang configuration");
+BEGIN_CONFIG(CSPIBitbang::config, "spibb", "SPI Bitbang configuration");
 CONFIG_SELECTSTART("data","Data pin", &g_nDataPin, 2);
 for (unsigned int i=0; i<sizeof(gpioInfo)/sizeof(gpioInfo[0]); i++)
 	CONFIG_SELECTOPTION(gpioInfo[i].szName, i);

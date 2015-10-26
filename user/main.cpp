@@ -79,7 +79,7 @@ user_init()
 	wifi_setup_defaults();
 	config_load();
 	wifi_init();
-	output_init();
+	Output::init();
 
     //Wait for system to be done.
     system_init_done_cb(&system_is_done);

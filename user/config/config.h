@@ -17,7 +17,7 @@ void config_init(CHttpServer *pServer);
 
 #define DEFINE_CONFIG(module) void module ## _runconfig(IConfigRunner *_configrunner);
 
-#define BEGIN_CONFIG(module, description) void module ## _runconfig(IConfigRunner *_configrunner) { _configrunner->beginModule(#module , description);
+#define BEGIN_CONFIG(module, name, description) void module ## _runconfig(IConfigRunner *_configrunner) { _configrunner->beginModule(name , description);
 #define END_CONFIG() _configrunner->endModule(); }
 
 #define CONFIG_SUB(name) name ## _runconfig(_configrunner)

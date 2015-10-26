@@ -25,7 +25,7 @@ uint8_t artnet_net;
 uint8_t artnet_subnet;
 uint8_t artnet_universe;
 
-BEGIN_CONFIG(artnet, "Art-Net");
+BEGIN_CONFIG(artnet, "artnet", "Art-Net");
 	CONFIG_BOOLEAN("enabled","Enabled",&artnet_enabled, 1);
 	CONFIG_STRING("shortname","Short name", artnet_shortname, 18, "EspLightNode");
 	CONFIG_STRING("longname", "Long name", artnet_longname, 64, "EspLightNode v1.0.0 running on ESP8266");
@@ -45,7 +45,7 @@ static void ICACHE_FLASH_ATTR artnet_recv_opoutput(unsigned char *packet, unsign
 			if (Net == artnet_net && (SubUni >> 4) == artnet_subnet && (SubUni & 0xF) == artnet_universe) {
 				uint16_t Length = ((uint16_t)packet[6] << 8) | packet[7];
 				if (packetlen >= 8 + Length)
-					output(&packet[8], Length);
+					Output::output(&packet[8], Length);
 			} else {
 				//Not intended for us...
 			}

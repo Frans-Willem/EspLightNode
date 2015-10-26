@@ -20,7 +20,7 @@ uint32_t aIP;
 uint32_t aNetmask;
 uint32_t aGateway;
 
-BEGIN_CONFIG(wifi, "WiFi");
+BEGIN_CONFIG(wifi, "wifi", "WiFi");
 CONFIG_SELECTSTART("mode","Operation mode", &nWifiMode, SOFTAP_MODE);
 CONFIG_SELECTOPTION("Access point", SOFTAP_MODE);
 CONFIG_SELECTOPTION("Client", STATION_MODE);
@@ -28,7 +28,7 @@ CONFIG_SELECTEND();
 CONFIG_STRING("ssid", "SSID", szWifiSsid, sizeof(szWifiSsid)-1, szWifiDefaultSsid);
 CONFIG_STRING("password","Password", szWifiPassword, sizeof(szWifiPassword)-1,"");
 END_CONFIG();
-BEGIN_CONFIG(network, "Network");
+BEGIN_CONFIG(network, "net", "Network");
 CONFIG_STRING("hostname", "Hostname", szHostname, sizeof(szHostname)-1, szDefaultHostname);
 CONFIG_BOOLEAN("dhcp","Automatic configuration (DHCP)", &bUseDhcp, true);
 CONFIG_IP("ip","IP Address", &aIP, 192, 168, 1, 1);
