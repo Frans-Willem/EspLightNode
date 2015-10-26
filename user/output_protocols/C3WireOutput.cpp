@@ -57,7 +57,7 @@ C3WireOutput::C3WireOutput(
 	// So we need nBck * nDiv = 50, where nBck>=2 and nDiv>=2
 	//   We should use 5 and 10, or 2 and 25, etc
 	m_pEncoder = pEncoder;
-	m_nBufferLength = m_pEncoder->getMaxLength(m_nLength*3);
+	m_nBufferLength = m_pEncoder->getMaxLength(m_nLength);
 	m_pBuffer = new uint32_t[m_nBufferLength];
 
 	memset(&m_qBuffer, 0, sizeof(m_qBuffer));
@@ -149,7 +149,7 @@ void C3WireOutput::output(const uint8_t *pData) {
 	// TODO: Ideally this should be moved closer to the rest of the register access
 	// But that will sometimes fail.
 	// I suspect we have to wait for the SLC to actually be stopped before messing with the registers
-	m_pEncoder->encode(pData, m_nLength*3, m_pBuffer);
+	m_pEncoder->encode(pData, m_nLength, m_pBuffer);
 	// Ideally I'd like to adjust the buffer length,
 	// but that will creep out the SLC when it's not properly stopped.
 	// So assume that the rest of the buffer is 0 anyway.

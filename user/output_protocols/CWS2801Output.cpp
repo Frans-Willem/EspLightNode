@@ -19,5 +19,5 @@ CWS2801Output::~CWS2801Output() {
 }
 
 void CWS2801Output::output(const uint8_t *pData) {
-	m_pSpi->output(pData, m_nLength * 3);
+	m_pSpi->output(pData, m_nLength);
 }
