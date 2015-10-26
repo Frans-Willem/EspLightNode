@@ -6,6 +6,7 @@
 #include "CSPIHardware.h"
 #include "C3WireOutput.h"
 #include "C3WireEncoder.h"
+#include <algorithm>
 
 enum OutputMode {
 	Output_Dummy,
@@ -25,15 +26,17 @@ CONFIG_SELECTOPTION("WS2801 (HSPI)", Output_WS2801_HSPI);
 CONFIG_SELECTOPTION("WS2811/WS2812 @ 800khz", Output_WS281X_800);
 CONFIG_SELECTOPTION("WS2811/WS2812 @ 400khz", Output_WS281X_400);
 CONFIG_SELECTEND();
-CONFIG_INT("length","Number of pixels",&nOutputLength, 1, 256, 150);
+CONFIG_INT("length","Number of channels",&nOutputLength, 1, 512, 450);
 CONFIG_SUB(CSPIBitbang::config);
 CONFIG_SUB(CSPIHardware::config);
 END_CONFIG();
 
 
 COutput* pOutput = NULL;
+uint8_t *pLastOutput;
 
 void output_init() {
+	pLastOutput = new uint8_t[nOutputLength];
 	switch (nOutputMode) {
 		case Output_WS2801_BB:
 			pOutput = new CWS2801Output(nOutputLength, new CSPIBitbang());
@@ -53,10 +56,7 @@ void output_init() {
 	}	
 }
 
-COutput* output_get() {
-	return pOutput;
-}
-
 void output(const uint8_t *pData, size_t nLength) {
-	pOutput->output(pData);
+	memcpy(pLastOutput, pData, std::min(nLength, nOutputLength));
+	pOutput->output(pLastOutput);
 }	
