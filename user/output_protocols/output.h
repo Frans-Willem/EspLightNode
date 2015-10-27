@@ -9,5 +9,6 @@ namespace Output {
 	void init();
 	void deinit();
 	void output(const uint8_t *pData, size_t nLength);
+	void partial(size_t nOffset, const uint8_t *pData, size_t nLength, bool bFlush);
 }
 #endif//OUTPUT_PROTOCOLS_OUTPUT_H

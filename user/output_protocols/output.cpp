@@ -97,12 +97,23 @@ namespace Output {
 	}
 
 	void output(const uint8_t *pData, size_t nLength) {
-		nLength = std::min(nLength, nOutputLength);
-		if (pCorrectionTable) {
-			for (size_t i = 0; i<nLength; i++)
-				pLastOutput[i] = pCorrectionTable[pData[i]];
-		} else
-			memcpy(pLastOutput, pData, nLength);
-		pOutput->output(pLastOutput);
-	}	
+		partial(0,pData,nLength,true);
+	}
+
+	void partial(size_t nOffset, const uint8_t *pData, size_t nLength, bool bFlush) {
+		if (nOffset < nOutputLength) {
+			if (nLength + nOffset > nOutputLength)
+				nLength= nOutputLength-nOffset;
+			uint8_t *pTarget = &pLastOutput[nOffset];
+			if (pCorrectionTable) {
+				for (size_t i = 0; i < nLength; i++)
+					pTarget[i] = pCorrectionTable[pData[i]];
+			} else {
+				memcpy(pTarget, pData, nLength);
+			}
+
+		}
+		if (bFlush)
+			pOutput->output(pLastOutput);
+	}
 }//namespace Output
