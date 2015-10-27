@@ -20,6 +20,8 @@ namespace Output {
 	uint32_t nOutputMode;
 	uint32_t nOutputLength;
 	bool bLum2Duty;
+	bool bGamma;
+	float fGamma;
 	// Globals
 	COutput* pOutput = NULL;
 	uint8_t *pCorrectionTable;
@@ -35,6 +37,8 @@ namespace Output {
 	CONFIG_SELECTEND();
 	CONFIG_INT("length","Number of channels",&nOutputLength, 1, 512, 450);
 	CONFIG_BOOLEAN("lum2duty","Luminance correction", &bLum2Duty, false);
+	CONFIG_BOOLEAN("gamma","Gamma correction", &bGamma, false);
+	CONFIG_FLOAT("gammaValue","Gamma", &fGamma, 1.5f);
 	CONFIG_SUB(CSPIBitbang::config);
 	CONFIG_SUB(CSPIHardware::config);
 	END_CONFIG();
@@ -60,17 +64,21 @@ namespace Output {
 				pOutput = new COutput(nOutputLength);
 				break;
 		}
-		if (bLum2Duty) {
+		if (bLum2Duty || bGamma) {
 			pCorrectionTable=new uint8_t[256];
 			for (unsigned int i=0; i<256; i++) {
 				float fValue = ((float)i) / 255.0f;
-				//See:
-				// https://ledshield.wordpress.com/2012/11/13/led-brightness-to-your-eye-gamma-correction-no/
-				if (fValue > 0.07999591993063804f) {
-					fValue = ((fValue+0.16f)/1.16f);
-					fValue *= fValue * fValue;
-				} else {
-					fValue /= 9.033f;
+				if (bGamma)
+					fValue = pow(fValue, fGamma);
+				if (bLum2Duty) {
+					//See:
+					// https://ledshield.wordpress.com/2012/11/13/led-brightness-to-your-eye-gamma-correction-no/
+					if (fValue > 0.07999591993063804f) {
+						fValue = ((fValue+0.16f)/1.16f);
+						fValue *= fValue * fValue;
+					} else {
+						fValue /= 9.033f;
+					}
 				}
 
 				long nValue = std::round(fValue*255.0f);
