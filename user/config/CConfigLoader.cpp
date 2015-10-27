@@ -91,4 +91,8 @@ void CConfigLoader::optionIpAddress(const char *szName, const char *szDescriptio
 	if (m_lSectionStack.empty() || !m_lSectionStack.back() || !m_lSectionStack.back()->getUInt(szName, *pAddress))
 		*pAddress = nDefault;
 }
+void CConfigLoader::optionFloat(const char *szName, const char *szDescription, float* pfValue, float fDefault) {
+	if (m_lSectionStack.empty() || !m_lSectionStack.back() || !m_lSectionStack.back()->getFloat(szName, *pfValue))
+		*pfValue = fDefault;
+}
 

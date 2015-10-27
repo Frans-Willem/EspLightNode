@@ -15,6 +15,7 @@ public:
 	void writeBytes(const uint8_t* pBytes, size_t nLength);
 	void writeUInt(unsigned int nValue);
 	void writeString(const char* szString);
+	void writeFloat(float fValue);
 private:
 	unsigned int	m_nCurrentSector;	//Current sector
 	int		m_nDirection;		//Which direction to continue after this sector is done

@@ -44,6 +44,11 @@ bool CConfigSection::read(CConfigReader *pReader) {
 				m_mIntegers[szName] = pReader->readUInt();
 				break;
 					   }
+			case ConfigFloat:{
+				std::string szName(pReader->readString());
+				m_mFloats[szName] = pReader->readFloat();
+				break;
+					   }
 		}
 	}
 }
@@ -78,5 +83,13 @@ bool CConfigSection::getSection(const std::string szKey, CConfigSection** ppSect
 	if (found == m_mSubSections.end())
 		return false;
 	*ppSection = found->second;
+	return true;
+}
+
+bool CConfigSection::getFloat(const std::string szKey, float& fValue) {
+	const auto found = m_mFloats.find(szKey);
+	if (found == m_mFloats.end())
+		return false;
+	fValue = found->second;
 	return true;
 }

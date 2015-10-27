@@ -29,6 +29,7 @@ class CConfigPostHandler : IHttpRequestListener, IConfigRunner {
 		void optionSelectItem(const char *szName, unsigned int nValue);
 		void optionSelectEnd();
 		void optionIpAddress(const char *szName, const char *szDescription, uint32_t *pAddress, uint32_t nDefault);
+		void optionFloat(const char *szName, const char *szDescription, float *pfValue, float fDefault);
 
 		std::string createOptionKey(const char *szName);
 		

@@ -6,6 +6,7 @@ extern "C" {
 #include "CConfigHtmlGenerator.h"
 #include "httpd/CHttpRequest.h"
 #include "config/config.h"
+#include "helpers.h"
 
 void CConfigHtmlGenerator::handle(CHttpRequest *pRequest) {
 	pRequest->addListener(new CConfigHtmlGenerator(pRequest));
@@ -102,6 +103,19 @@ void CConfigHtmlGenerator::optionIpAddress(const char *szName, const char *szDes
 		write(szTemp);
 		write("\"></input>");
 	}
+	write("<br />");
+}
+void CConfigHtmlGenerator::optionFloat(const char *szName, const char *szDescription, float* pfValue, float fDefault) {
+	char szTemp[64];
+	write(szDescription);
+	write(": ");
+	write("<input type=\"text\" name=\"");
+	write_fieldprefix();
+	write(szName);
+	write("\" value=\"");
+	eln_ftoa(*pfValue, szTemp, 64);
+	write(szTemp);
+	write("\"></input>");
 	write("<br />");
 }
 void CConfigHtmlGenerator::onHeader(CHttpRequest *pRequest, const char *szName, const char *szValue) {

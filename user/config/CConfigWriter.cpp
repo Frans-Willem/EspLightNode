@@ -76,3 +76,6 @@ void CConfigWriter::writeString(const char* szString) {
 	writeUInt(nLen);
 	writeBytes((const uint8_t *)szString, nLen);
 }
+void CConfigWriter::writeFloat(float fValue) {
+	writeBytes((const uint8_t *)&fValue, sizeof(float));
+}

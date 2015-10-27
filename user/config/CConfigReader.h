@@ -12,6 +12,7 @@ public:
 	void skip(size_t nLength);
 	unsigned int readUInt();
 	std::string readString();
+	float readFloat();
 private:
 	unsigned int	m_nCurrentSector;
 	int		m_nDirection;

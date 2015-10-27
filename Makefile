@@ -23,7 +23,8 @@ OBJS:= cppcompat main wifisetup \
 	config/CConfigWriter config/CConfigReader config/CConfigSection config/CConfigLoader \
 	httpd/CTcpServer httpd/CTcpSocket \
 	httpd/CHttpServer httpd/CHttpRequest \
-	debug/CDebugServer
+	debug/CDebugServer \
+	helpers
 
 
 # Tool paths

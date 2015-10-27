@@ -5,6 +5,7 @@
 #include "config/config.h"
 #include "CConfigWriter.h"
 #include "config/format.h"
+#include "helpers.h"
 extern "C" {
 #include <user_interface.h>
 }
@@ -214,5 +215,16 @@ void CConfigPostHandler::optionIpAddress(const char *szName, const char *szDescr
 		m_pWriter->writeUInt(ConfigInteger);
 		m_pWriter->writeString(szName);
 		m_pWriter->writeUInt(nValue);
+	}
+}
+void CConfigPostHandler::optionFloat(const char *szName, const char *szDescription, float* pfValue, float fDefault) {
+	auto found = m_mValues.find(createOptionKey(szName));
+	if (found != m_mValues.end()) {
+		float fValue = eln_atof(found->second.c_str());
+		if (fValue != fDefault) {
+			m_pWriter->writeUInt(ConfigFloat);
+			m_pWriter->writeString(szName);
+			m_pWriter->writeFloat(fValue);
+		}
 	}
 }

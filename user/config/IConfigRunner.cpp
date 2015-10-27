@@ -21,3 +21,5 @@ void IConfigRunner::optionSelectEnd() {
 }
 void IConfigRunner::optionIpAddress(const char *szName, const char *szDescription, uint32_t* pAddress, uint32_t nDefault) {
 }
+void IConfigRunner::optionFloat(const char *szName, const char *szDescription, float* pfValue, float fDefault) {
+}

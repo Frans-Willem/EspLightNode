@@ -76,3 +76,9 @@ std::string CConfigReader::readString() {
 	readBytes((uint8_t *)szRetval.data(), nLength);
 	return szRetval;
 }
+
+float  CConfigReader::readFloat() {
+	float fValue;
+	readBytes((uint8_t*)&fValue, sizeof(float));
+	return fValue;
+}

@@ -10,7 +10,8 @@ enum ConfigCommand {
 	ConfigSectionStart,
 	ConfigSectionEnd,
 	ConfigString,
-	ConfigInteger
+	ConfigInteger,
+	ConfigFloat
 };
 
 #endif//CONFIG_FORMAT_H
