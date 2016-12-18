@@ -25,7 +25,14 @@ namespace Output {
 	// Globals
 	COutput* pOutput = NULL;
 	uint8_t *pCorrectionTable;
-	uint8_t *pLastOutput;
+	uint8_t *pNextFrame;
+	uint8_t *pCurrentFrame;
+	// Global related to framerate limiter
+	static os_timer_t timerLimiter;
+	bool bFrameReady = false; // pCurrentFrame should be sent out.
+	bool bFrameShouldWait = false;
+	uint32_t nLimiterFreq;
+	uint32_t nLimiterPeriod; // Calculated from above
 
 	BEGIN_CONFIG(config,"output","Output")
 	CONFIG_SELECTSTART("mode", "Mode", &nOutputMode, Output_Dummy);
@@ -39,6 +46,7 @@ namespace Output {
 	CONFIG_BOOLEAN("lum2duty","Luminance correction", &bLum2Duty, false);
 	CONFIG_BOOLEAN("gamma","Gamma correction", &bGamma, false);
 	CONFIG_FLOAT("gammaValue","Gamma", &fGamma, 1.5f);
+	CONFIG_INT("frameratecap","Maximum framerate", &nLimiterFreq, 0, 1000, 30);
 	CONFIG_SUB(CSPIBitbang::config);
 	CONFIG_SUB(CSPIHardware::config);
 	END_CONFIG();
@@ -46,7 +54,9 @@ namespace Output {
 
 
 	void init() {
-		pLastOutput = new uint8_t[nOutputLength];
+		pCurrentFrame = new uint8_t[nOutputLength];
+		pNextFrame = new uint8_t[nOutputLength];
+		nLimiterPeriod = (nLimiterFreq > 0) ? (1000/nLimiterFreq):0;
 		switch (nOutputMode) {
 			case Output_WS2801_BB:
 				pOutput = new CWS2801Output(nOutputLength, new CSPIBitbang());
@@ -91,7 +101,8 @@ namespace Output {
 
 	void deinit() {
 		delete pOutput;
-		delete[] pLastOutput;
+		delete[] pCurrentFrame;
+		delete[] pNextFrame;
 		if (pCorrectionTable)
 			delete[] pCorrectionTable;
 	}
@@ -104,16 +115,42 @@ namespace Output {
 		if (nOffset < nOutputLength) {
 			if (nLength + nOffset > nOutputLength)
 				nLength= nOutputLength-nOffset;
-			uint8_t *pTarget = &pLastOutput[nOffset];
+			uint8_t *pTarget = &pNextFrame[nOffset];
 			if (pCorrectionTable) {
 				for (size_t i = 0; i < nLength; i++)
 					pTarget[i] = pCorrectionTable[pData[i]];
 			} else {
-				memcpy(pTarget, pData, nLength);
+				memcpy(pTarget, pData, nLength * sizeof(uint8_t));
 			}
 
 		}
-		if (bFlush)
-			pOutput->output(pLastOutput);
+		if (bFlush) {
+			memcpy(pCurrentFrame, pNextFrame, nOutputLength * sizeof(uint8_t));
+			bFrameReady = true;
+			try_push_frame();
+		}
+	}
+
+	// Try to push pCurrentFrame to output as soon as possible.
+	// Will possibly wait for the limiter.
+	void try_push_frame() {
+		// Ignore if the limiter is active and a frame was just sent, or if no new frame is ready.
+		if ((nLimiterPeriod > 0 && bFrameShouldWait) || !bFrameReady) {
+			return;
+		}
+		bFrameReady = false;
+		bFrameShouldWait = (nLimiterPeriod > 0);
+		pOutput->output(pCurrentFrame);
+		if (nLimiterPeriod > 0) {
+			os_timer_disarm(&timerLimiter);
+			os_timer_setfn(&timerLimiter, (os_timer_func_t *)&limiter_timer_cb, NULL);
+			os_timer_arm(&timerLimiter, nLimiterPeriod, 0);
+		}
+	}
+
+	void limiter_timer_cb(void *) {
+		os_timer_disarm(&timerLimiter);
+		bFrameShouldWait = false;
+		try_push_frame();
 	}
 }//namespace Output
