@@ -7,6 +7,11 @@
 
 #ifndef INPUT_PROTOCOLS_TPM2NET_H_
 #define INPUT_PROTOCOLS_TPM2NET_H_
+#include "config/config.h"
 
-void tpm2net_init();
+namespace tpm2net {
+	DEFINE_CONFIG(config);
+	void init();
+	void deinit();
+}
 #endif /* INPUT_PROTOCOLS_TPM2NET_H_ */

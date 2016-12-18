@@ -29,7 +29,7 @@ void start_services() {
 	CHttpServer *pServer = new CHttpServer(80);
 	
 	config_init(pServer);
-	tpm2net_init();
+	tpm2net::init();
 	artnet_init();
 }
 static os_timer_t client_timer;

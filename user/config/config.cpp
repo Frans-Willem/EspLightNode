@@ -18,9 +18,9 @@ extern "C" {
 #include "config/CConfigPostHandler.h"
 #include "config/CConfigLoader.h"
 #include "output_protocols/output.h"
+#include "input_protocols/tpm2net.h"
 
 DEFINE_CONFIG(artnet);
-DEFINE_CONFIG(tpm2net);
 DEFINE_CONFIG(wifi);
 DEFINE_CONFIG(network);
 
@@ -29,7 +29,7 @@ void config_run(IConfigRunner *_configrunner) {
 	CONFIG_SUB(network);
 	CONFIG_SUB(Output::config);
 	CONFIG_SUB(artnet);
-	CONFIG_SUB(tpm2net);
+	CONFIG_SUB(tpm2net::config);
 }
 
 void config_load() {
