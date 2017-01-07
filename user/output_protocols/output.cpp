@@ -7,6 +7,8 @@
 #include "C3WireOutput.h"
 #include "C3WireEncoder.h"
 #include <algorithm>
+#include "CColorCorrector.h"
+#include "CLimiter.h"
 
 namespace Output {
 	enum OutputMode {
@@ -24,15 +26,9 @@ namespace Output {
 	float fGamma;
 	// Globals
 	COutput* pOutput = NULL;
-	uint8_t *pCorrectionTable;
-	uint8_t *pNextFrame;
 	uint8_t *pCurrentFrame;
 	// Global related to framerate limiter
-	static os_timer_t timerLimiter;
-	bool bFrameReady = false; // pCurrentFrame should be sent out.
-	bool bFrameShouldWait = false;
 	uint32_t nLimiterFreq;
-	uint32_t nLimiterPeriod; // Calculated from above
 
 	BEGIN_CONFIG(config,"output","Output")
 	CONFIG_SELECTSTART("mode", "Mode", &nOutputMode, Output_Dummy);
@@ -55,8 +51,6 @@ namespace Output {
 
 	void init() {
 		pCurrentFrame = new uint8_t[nOutputLength];
-		pNextFrame = new uint8_t[nOutputLength];
-		nLimiterPeriod = (nLimiterFreq > 0) ? (1000/nLimiterFreq):0;
 		switch (nOutputMode) {
 			case Output_WS2801_BB:
 				pOutput = new CWS2801Output(nOutputLength, new CSPIBitbang());
@@ -74,37 +68,13 @@ namespace Output {
 				pOutput = new COutput(nOutputLength);
 				break;
 		}
-		if (bLum2Duty || bGamma) {
-			pCorrectionTable=new uint8_t[256];
-			for (unsigned int i=0; i<256; i++) {
-				float fValue = ((float)i) / 255.0f;
-				if (bGamma)
-					fValue = pow(fValue, fGamma);
-				if (bLum2Duty) {
-					//See:
-					// https://ledshield.wordpress.com/2012/11/13/led-brightness-to-your-eye-gamma-correction-no/
-					if (fValue > 0.07999591993063804f) {
-						fValue = ((fValue+0.16f)/1.16f);
-						fValue *= fValue * fValue;
-					} else {
-						fValue /= 9.033f;
-					}
-				}
-
-				long nValue = std::round(fValue*255.0f);
-				if (nValue<0) pCorrectionTable[i] = 0;
-				else if (nValue>255) pCorrectionTable[i] = 255;
-				else pCorrectionTable[i] = nValue;
-			}
-		}
+		pOutput = CColorCorrector::wrap(pOutput, bGamma, fGamma, bLum2Duty);
+		pOutput = CLimiter::wrap(pOutput, nLimiterFreq);
 	}
 
 	void deinit() {
 		delete pOutput;
 		delete[] pCurrentFrame;
-		delete[] pNextFrame;
-		if (pCorrectionTable)
-			delete[] pCorrectionTable;
 	}
 
 	void output(const uint8_t *pData, size_t nLength) {
@@ -115,42 +85,10 @@ namespace Output {
 		if (nOffset < nOutputLength) {
 			if (nLength + nOffset > nOutputLength)
 				nLength= nOutputLength-nOffset;
-			uint8_t *pTarget = &pNextFrame[nOffset];
-			if (pCorrectionTable) {
-				for (size_t i = 0; i < nLength; i++)
-					pTarget[i] = pCorrectionTable[pData[i]];
-			} else {
-				memcpy(pTarget, pData, nLength * sizeof(uint8_t));
-			}
-
+			uint8_t *pTarget = &pCurrentFrame[nOffset];
+			memcpy(pTarget, pData, nLength * sizeof(uint8_t));
 		}
-		if (bFlush) {
-			memcpy(pCurrentFrame, pNextFrame, nOutputLength * sizeof(uint8_t));
-			bFrameReady = true;
-			try_push_frame();
-		}
-	}
-
-	// Try to push pCurrentFrame to output as soon as possible.
-	// Will possibly wait for the limiter.
-	void try_push_frame() {
-		// Ignore if the limiter is active and a frame was just sent, or if no new frame is ready.
-		if ((nLimiterPeriod > 0 && bFrameShouldWait) || !bFrameReady) {
-			return;
-		}
-		bFrameReady = false;
-		bFrameShouldWait = (nLimiterPeriod > 0);
-		pOutput->output(pCurrentFrame);
-		if (nLimiterPeriod > 0) {
-			os_timer_disarm(&timerLimiter);
-			os_timer_setfn(&timerLimiter, (os_timer_func_t *)&limiter_timer_cb, NULL);
-			os_timer_arm(&timerLimiter, nLimiterPeriod, 0);
-		}
-	}
-
-	void limiter_timer_cb(void *) {
-		os_timer_disarm(&timerLimiter);
-		bFrameShouldWait = false;
-		try_push_frame();
+		if (bFlush)
+			pOutput->output(pCurrentFrame);
 	}
 }//namespace Output

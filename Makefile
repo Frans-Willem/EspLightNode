@@ -9,6 +9,7 @@ RELEASE_DIR:=release
 
 # Object files
 OBJS:= cppcompat main wifisetup \
+	CTimer \
 	output_protocols/output output_protocols/COutput \
 	output_protocols/ISPIInterface \
 	output_protocols/CSPIBitbang \
@@ -16,6 +17,8 @@ OBJS:= cppcompat main wifisetup \
 	output_protocols/CWS2801Output \
 	output_protocols/C3WireOutput \
 	output_protocols/C3WireEncoder \
+	output_protocols/CColorCorrector \
+	output_protocols/CLimiter \
 	input_protocols/tpm2net \
 	input_protocols/artnet \
 	config/config config/IConfigRunner config/CConfigHtmlGenerator config/CConfigPostHandler \
